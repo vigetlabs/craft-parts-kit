@@ -1,0 +1,16 @@
+{% extends '_layouts/base.twig' %}
+
+{# Block all Robots #}
+{% html at head %}
+  <meta name="robots" content="none">
+{% endhtml %}
+
+{# TODO duplication #}
+{% js 'https://unpkg.com/@viget/parts-kit@^0/lib/parts-kit.js' with {
+  type: 'module',
+} %}
+
+{% block content %}
+  {% block main %}
+  {% endblock %}
+{% endblock %}
