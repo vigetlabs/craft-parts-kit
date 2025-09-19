@@ -5,6 +5,7 @@ namespace viget\partskit\services;
 use Craft;
 use craft\helpers\FileHelper;
 use craft\helpers\StringHelper;
+use illuminate\Support\Collection;
 use viget\partskit\models\NavNode;
 use yii\base\Component;
 use yii\base\Exception;
@@ -28,10 +29,13 @@ class Navigation extends Component
         $directories = FileHelper::findDirectories($partsPath);
         $files = FileHelper::findFiles($partsPath);
 
-        $templates = [
+        $templates = Collection::make([
             ...$directories,
             ...$files
-        ];
+        ])
+            ->reject(self::_isHiddenFileOrDirectory(...))
+            ->values()
+            ->toArray();
 
         $skipPaths = [
             $partsPath . 'index.twig',
@@ -103,5 +107,17 @@ class Navigation extends Component
         }, Craft::$app->config->general->defaultTemplateExtensions);
 
         return str_replace($extensions, '', $file);
+    }
+
+    /**
+     * Explode a file or directory path and check if any of the segments start with a dot
+     * @param string $path
+     * @return bool
+     */
+    private static function _isHiddenFileOrDirectory(string $path): bool
+    {
+        return Collection::make(explode('/', $path))
+                ->filter(fn($segment) => str_starts_with($segment, '.'))
+                ->isNotEmpty();
     }
 }
