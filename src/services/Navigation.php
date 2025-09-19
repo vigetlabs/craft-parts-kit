@@ -31,7 +31,7 @@ class Navigation extends Component
 
         $templates = Collection::make([
             ...$directories,
-            ...$files
+            ...$files,
         ])
             ->reject(self::_isHiddenFileOrDirectory(...))
             ->values()
@@ -102,7 +102,7 @@ class Navigation extends Component
 
     private static function _removeExtension(string $file): string
     {
-        $extensions = array_map(function ($extension) {
+        $extensions = array_map(function($extension) {
             return '.' . $extension;
         }, Craft::$app->config->general->defaultTemplateExtensions);
 
