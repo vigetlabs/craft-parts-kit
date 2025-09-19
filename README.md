@@ -1,11 +1,12 @@
 # Viget Parts Kit
 
-
 ## Craft Parts Kit Plugin
 
 Decoupled parts kit for Craft CMS that powers a Storybook-esque UI using your actual Twig templates. This plugin scans your `templates/parts-kit` directory, builds a navigation JSON, and serves a prebuilt UI that loads each part in an iframe.
 
 The UI is provided by the Parts Kit JS library. See the JS project docs: [vigetlabs/parts-kit](https://github.com/vigetlabs/parts-kit).
+
+https://github.com/user-attachments/assets/b1205f58-1d8b-4c73-9bad-60b3e6eb2015
 
 ### Key features
 
