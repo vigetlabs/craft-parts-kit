@@ -9,8 +9,7 @@ class NavNode implements \JsonSerializable
         public string  $path,
         public ?string $url = null,
         public array   $children = [],
-    )
-    {
+    ) {
     }
 
     public function jsonSerialize(): array

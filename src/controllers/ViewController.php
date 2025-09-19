@@ -2,9 +2,7 @@
 
 namespace viget\partskit\controllers;
 
-use Craft;
 use craft\web\Controller;
-use viget\partskit\Plugin;
 use yii\web\Response;
 
 /**

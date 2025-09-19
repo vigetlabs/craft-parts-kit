@@ -17,6 +17,9 @@ use InvalidArgumentException;
 use Twig\Markup;
 use yii\base\NotSupportedException;
 
+/**
+ * Work in Progress 
+ */
 class MockAsset extends Asset
 {
     private ?int $_width = null;
@@ -24,7 +27,6 @@ class MockAsset extends Asset
 
     public function __construct()
     {
-
     }
 
     public function init(): void
@@ -673,4 +675,3 @@ class MockAsset extends Asset
         throw new NotSupportedException('Not implemented.');
     }
 }
-

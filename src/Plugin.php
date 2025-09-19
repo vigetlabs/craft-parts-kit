@@ -40,7 +40,7 @@ class Plugin extends BasePlugin
         parent::init();
 
         // Defer most setup tasks until Craft is fully initialized
-        Craft::$app->onInit(function () {
+        Craft::$app->onInit(function() {
             $this->attachEventHandlers();
             // ...
         });
@@ -53,7 +53,7 @@ class Plugin extends BasePlugin
         Event::on(
             View::class,
             View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS,
-            function (RegisterTemplateRootsEvent $event) {
+            function(RegisterTemplateRootsEvent $event) {
                 $event->roots['viget-parts-kit'] = $this->getBasePath() . '/templates';
             }
         );
@@ -63,7 +63,7 @@ class Plugin extends BasePlugin
         Event::on(
             \craft\web\UrlManager::class,
             \craft\web\UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function (\craft\events\RegisterUrlRulesEvent $event) {
+            function(\craft\events\RegisterUrlRulesEvent $event) {
                 $partsKitDir = 'parts-kit'; // $this->getSettings()->partsKitDirectory; TODO
                 $event->rules[$partsKitDir] = 'viget-parts-kit/view/root';
             }
@@ -73,7 +73,7 @@ class Plugin extends BasePlugin
         Event::on(
             \craft\web\twig\variables\CraftVariable::class,
             \craft\web\twig\variables\CraftVariable::EVENT_INIT,
-            static function (Event $e) {
+            static function(Event $e) {
                 /** @var \craft\web\twig\variables\CraftVariable $variable */
                 $variable = $e->sender;
                 $variable->set('partsKit', self::getInstance());
