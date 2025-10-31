@@ -140,7 +140,7 @@ class Navigation extends Component
     private static function _isHiddenFileOrDirectory(string $path): bool
     {
         return Collection::make(explode('/', $path))
-                ->filter(fn($segment) => str_starts_with($segment, '.') || str_starts_with($segment, '_'))
-                ->isNotEmpty();
+            ->filter(fn($segment) => str_starts_with($segment, '.') || str_starts_with($segment, '_'))
+            ->isNotEmpty();
     }
 }
