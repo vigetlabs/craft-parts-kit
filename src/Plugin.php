@@ -11,7 +11,7 @@ use viget\partskit\services\Navigation;
 use yii\base\Event;
 
 /**
- * Viget Parts Kit plugin
+ * Craft Parts Kit plugin
  *
  * @method static Plugin getInstance()
  * @author Viget <craft@viget.com>
@@ -21,6 +21,8 @@ use yii\base\Event;
  */
 class Plugin extends BasePlugin
 {
+    public const TEMPLATE_ROOT = 'parts-kit';
+
     public string $schemaVersion = '1.0.0';
 
     public static function config(): array
@@ -40,7 +42,7 @@ class Plugin extends BasePlugin
         parent::init();
 
         // Defer most setup tasks until Craft is fully initialized
-        Craft::$app->onInit(function() {
+        Craft::$app->onInit(function () {
             $this->attachEventHandlers();
             // ...
         });
@@ -53,8 +55,8 @@ class Plugin extends BasePlugin
         Event::on(
             View::class,
             View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS,
-            function(RegisterTemplateRootsEvent $event) {
-                $event->roots['viget-parts-kit'] = $this->getBasePath() . '/templates';
+            function (RegisterTemplateRootsEvent $event) {
+                $event->roots[self::TEMPLATE_ROOT] = $this->getBasePath() . '/templates';
             }
         );
 
@@ -63,9 +65,9 @@ class Plugin extends BasePlugin
         Event::on(
             \craft\web\UrlManager::class,
             \craft\web\UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function(\craft\events\RegisterUrlRulesEvent $event) {
+            function (\craft\events\RegisterUrlRulesEvent $event) {
                 $partsKitDir = 'parts-kit'; // $this->getSettings()->partsKitDirectory; TODO
-                $event->rules[$partsKitDir] = 'viget-parts-kit/view/root';
+                $event->rules[$partsKitDir] = 'parts-kit/view/root';
             }
         );
 
@@ -73,7 +75,7 @@ class Plugin extends BasePlugin
         Event::on(
             \craft\web\twig\variables\CraftVariable::class,
             \craft\web\twig\variables\CraftVariable::EVENT_INIT,
-            static function(Event $e) {
+            static function (Event $e) {
                 /** @var \craft\web\twig\variables\CraftVariable $variable */
                 $variable = $e->sender;
                 $variable->set('partsKit', self::getInstance());
