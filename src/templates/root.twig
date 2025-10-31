@@ -1,15 +1,38 @@
+{#-
+The root template for the parts kit. 
+
+It renders the <parts-kit> UI web component as well 
+as 
+
+
+ -#}
+{%- set templatePath = templatePath ?? null -%}
+{#- @var settings \viget\partskit\models\Settings -#}
+{%- set settings = craft.partsKit.settings -%}
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ currentSite.name }} - Parts Kit</title>
-  {# Block all Robots #}
-  <meta name="robots" content="none">
-</head>
-<body>
-{# TODO duplication #}
-<script type="module" src="https://unpkg.com/@viget/parts-kit@^0/lib/parts-kit.js"></script>
-<parts-kit config-url="{{ actionUrl('parts-kit/api/config') }}"></parts-kit>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ currentSite.name }} - Parts Kit</title>
+
+    {# Block all Robots #}
+    <meta name="robots" content="none">
+
+    {# Load the parts kit JS script. This shoudl be loaded on the root path `/parts-kit` as well the routes that render parts. #}
+    <script type="module" src="https://unpkg.com/@viget/parts-kit@^0/lib/parts-kit.js"></script>
+
+    {% if templatePath and settings.headTemplatePath %}
+      {{ include(settings.headTemplatePath) }}
+    {% endif %}
+  </head>
+  <body>
+    {% if templatePath %}
+        {# Render the template for the part #}
+        {{ include(templatePath) }}
+    {% else %}
+      {# We must be on the root path, render the parts kit UI web component #}
+      <parts-kit config-url="{{ actionUrl('parts-kit/api/config') }}"></parts-kit>
+    {% endif %}
+  </body>
 </html>
