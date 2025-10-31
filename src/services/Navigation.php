@@ -89,7 +89,30 @@ class Navigation extends Component
         // Sort by keys so they're in alpha order
         ksort($result);
 
+        // Sort all children arrays recursively in ascending order
+        foreach ($result as $node) {
+            self::_sortChildren($node);
+        }
+
         return array_values($result);
+    }
+
+    /**
+     * Recursively sort children arrays in ascending order by title
+     * @param NavNode $node
+     */
+    private static function _sortChildren(NavNode $node): void
+    {
+        if (empty($node->children)) {
+            return;
+        }
+
+        usort($node->children, fn(NavNode $a, NavNode $b) => strcasecmp($a->title, $b->title));
+
+        // Recursively sort children's children
+        foreach ($node->children as $child) {
+            self::_sortChildren($child);
+        }
     }
 
     private static function _formatTitle(string $str): string
