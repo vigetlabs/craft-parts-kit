@@ -66,8 +66,6 @@ class Plugin extends BasePlugin
 
     private function attachEventHandlers(): void
     {
-        // Register event handlers here ...
-        // (see https://craftcms.com/docs/4.x/extend/events.html to get started)
         Event::on(
             View::class,
             View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS,
@@ -81,10 +79,7 @@ class Plugin extends BasePlugin
         Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function (RegisterUrlRulesEvent $event) {
-                $partsKitDir = $this->getSettings()->directory;
-                $event->rules[$partsKitDir] = 'parts-kit/view/root';
-            }
+            $this->_registerUrlRules(...)
         );
 
         // Make this plugin available as `partsKit` Twig variable
@@ -97,5 +92,19 @@ class Plugin extends BasePlugin
                 $variable->set('partsKit', self::getInstance());
             }
         );
+    }
+
+    /**
+     * Overrides the default `/parts-kit` paths to route them 
+     * through our custom controller action. 
+     * 
+     * This gives full control over the rendering of the parts kit UI and
+     * bypasses the need for {% layout %} tags in parts kit templates.
+     */
+    private function _registerUrlRules(RegisterUrlRulesEvent $event): void
+    {
+        $partsKitDir = $this->getSettings()->directory;
+        $event->rules[$partsKitDir] = 'parts-kit/view/root';
+        $event->rules[$partsKitDir . '/<template:.+>'] = 'parts-kit/view/template';
     }
 }
