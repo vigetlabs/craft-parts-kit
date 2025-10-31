@@ -19,10 +19,10 @@
     }
   },
   "extra": {
-    "handle": "viget-parts-kit",
-    "name": "Viget Parts Kit",
+    "handle": "parts-kit",
+    "name": "Parts Kit",
     "developer": "Viget",
-    "documentationUrl": ""
+    "documentationUrl": "https://github.com/vigetlabs/craft-parts-kit"
   },
   "scripts": {
     "check-cs": "ecs check --ansi",

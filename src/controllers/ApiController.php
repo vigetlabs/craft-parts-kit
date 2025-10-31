@@ -14,7 +14,7 @@ class ApiController extends Controller
     protected array|int|bool $allowAnonymous = ['config'];
 
     /**
-     * viget-parts-kit/api/config action
+     * parts-kit/api/config action
      */
     public function actionConfig(): Response
     {
