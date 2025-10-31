@@ -68,6 +68,11 @@ return [
     // The same partial can (and probably should) be included in your project's layout.
     // Default: null
     'headTemplatePath' => '_partials/head.twig',
+
+    // Require a logged in user with admin or has the "View Parts Kit" permission to view parts kit URLs.
+    // Set to false to allow anonymous access to the parts kit.
+    // Default: true
+    'requireViewPermission' => true,
 ];
 ```
 

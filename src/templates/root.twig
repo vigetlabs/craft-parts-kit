@@ -7,6 +7,12 @@ as the template for the part.
 {%- set templatePath = templatePath ?? null -%}
 {#- @var settings \viget\partskit\models\Settings -#}
 {%- set settings = craft.partsKit.settings -%}
+
+{#- Check permissions if required -#}
+{% if settings.requireViewPermission %}
+  {% requirePermission 'parts-kit:view' %}
+{% endif %}
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
