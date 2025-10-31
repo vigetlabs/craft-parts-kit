@@ -17,6 +17,12 @@ class Settings extends Model
      */
     public ?string $headTemplatePath = null;
 
+    /**
+     * Require a logged in user with admin or has the "View Parts Kit" permission to view parts kit URLs.
+     * Set to false to allow anonymous access to the parts kit.
+     */
+    public bool $requireViewPermission = true;
+
     public function defineRules(): array
     {
         return [
