@@ -3,12 +3,18 @@
 namespace viget\partskit;
 
 use Craft;
+use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\events\RegisterTemplateRootsEvent;
+use craft\events\RegisterUrlRulesEvent;
+use craft\web\twig\variables\CraftVariable;
+use craft\web\UrlManager;
 use craft\web\View;
+use viget\partskit\models\Settings;
 use viget\partskit\services\Assets;
 use viget\partskit\services\Navigation;
 use yii\base\Event;
+use yii\web\View as BaseView;
 
 /**
  * Craft Parts Kit plugin
@@ -23,18 +29,28 @@ class Plugin extends BasePlugin
 {
     public const TEMPLATE_ROOT = 'parts-kit';
 
+    public bool $hasCpSettings = false;
+
     public string $schemaVersion = '1.0.0';
 
     public static function config(): array
     {
         return [
-            'components' => ['navigation' => Navigation::class, 'assets' => Assets::class],
+            'components' => [
+                'navigation' => Navigation::class,
+                'assets' => Assets::class,
+            ],
         ];
     }
 
     public function getNavigation(): Navigation
     {
         return $this->get('navigation');
+    }
+
+    protected function createSettingsModel(): ?Model
+    {
+        return new Settings();
     }
 
     public function init(): void
@@ -63,20 +79,20 @@ class Plugin extends BasePlugin
         // Override rendering of the root /parts-kit URL, so we can render a custom template that
         // injects the HTML / JS for our parts kit UI.
         Event::on(
-            \craft\web\UrlManager::class,
-            \craft\web\UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function (\craft\events\RegisterUrlRulesEvent $event) {
-                $partsKitDir = 'parts-kit'; // $this->getSettings()->partsKitDirectory; TODO
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+            function (RegisterUrlRulesEvent $event) {
+                $partsKitDir = $this->getSettings()->directory;
                 $event->rules[$partsKitDir] = 'parts-kit/view/root';
             }
         );
 
         // Make this plugin available as `partsKit` Twig variable
         Event::on(
-            \craft\web\twig\variables\CraftVariable::class,
-            \craft\web\twig\variables\CraftVariable::EVENT_INIT,
+            CraftVariable::class,
+            CraftVariable::EVENT_INIT,
             static function (Event $e) {
-                /** @var \craft\web\twig\variables\CraftVariable $variable */
+                /** @var CraftVariable $variable */
                 $variable = $e->sender;
                 $variable->set('partsKit', self::getInstance());
             }
