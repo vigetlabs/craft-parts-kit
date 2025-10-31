@@ -7,6 +7,8 @@ use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\events\RegisterTemplateRootsEvent;
 use craft\events\RegisterUrlRulesEvent;
+use craft\events\RegisterUserPermissionsEvent;
+use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use craft\web\View;
@@ -90,6 +92,22 @@ class Plugin extends BasePlugin
                 /** @var CraftVariable $variable */
                 $variable = $e->sender;
                 $variable->set('partsKit', self::getInstance());
+            }
+        );
+
+        // Register user permissions
+        Event::on(
+            UserPermissions::class,
+            UserPermissions::EVENT_REGISTER_PERMISSIONS,
+            function (RegisterUserPermissionsEvent $event) {
+                $event->permissions[] = [
+                    'heading' => 'Parts Kit',
+                    'permissions' => [
+                        'parts-kit:view' => [
+                            'label' => 'View Parts Kit',
+                        ],
+                    ],
+                ];
             }
         );
     }
