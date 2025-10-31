@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ currentSite.name }} - Parts Kit</title>
-  {# Block all Robots #}
-  <meta name="robots" content="none">
-</head>
-<body>
-{# TODO duplication #}
-<script type="module" src="https://unpkg.com/@viget/parts-kit@^0/lib/parts-kit.js"></script>
-<parts-kit config-url="{{ actionUrl('viget-parts-kit/api/config') }}"></parts-kit>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ currentSite.name }}
+      - Parts Kit</title>
+    {# Block all Robots #}
+    <meta name="robots" content="none">
+  </head>
+  <body>
+    {% if currentUser %}
+      {# TODO duplication #}
+      <script type="module" src="https://unpkg.com/@viget/parts-kit@^0/lib/parts-kit.js"></script>
+      <parts-kit config-url="{{ actionUrl('viget-parts-kit/api/config') }}"></parts-kit>
+    {% endif %}
+  </body>
 </html>
