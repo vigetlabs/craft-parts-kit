@@ -3,6 +3,7 @@
 namespace viget\partskit\controllers;
 
 use craft\web\Controller;
+use viget\partskit\Plugin;
 use yii\web\Response;
 
 /**
@@ -13,12 +14,12 @@ class ViewController extends Controller
     protected array|int|bool $allowAnonymous = ['root'];
 
     /**
-     * viget-parts-kit/view/root action
+     * parts-kit/view/root action
      */
     public function actionRoot(): Response
     {
         return $this->renderTemplate(
-            'viget-parts-kit/root',
+            Plugin::TEMPLATE_ROOT . '/root',
         );
     }
 }
