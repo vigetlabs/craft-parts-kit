@@ -1,6 +1,4 @@
-# Viget Parts Kit
-
-## Craft Parts Kit Plugin
+# Craft CMS Parts Kit Plugin
 
 Decoupled parts kit for Craft CMS that powers a Storybook-esque UI using your actual Twig templates. This plugin scans your `templates/parts-kit` directory, builds a navigation JSON, and serves a prebuilt UI that loads each part in an iframe.
 
@@ -8,7 +6,7 @@ The UI is provided by the Parts Kit JS library. See the JS project docs: [vigetl
 
 https://github.com/user-attachments/assets/b1205f58-1d8b-4c73-9bad-60b3e6eb2015
 
-### Key features
+## Key features
 
 - Low abstraction: render with your real Twig templates
 - Zero-build UI: just a script tag and a custom element
@@ -17,7 +15,7 @@ https://github.com/user-attachments/assets/b1205f58-1d8b-4c73-9bad-60b3e6eb2015
 
 ## Requirements
 
-This plugin requires Craft CMS 5.4.0 or later, and PHP 8.2 or later.
+This plugin requires Craft CMS 5.0.0 or later, and PHP 8.2 or later.
 
 ## Installation
 
@@ -44,9 +42,9 @@ craft plugin/install craft-parts-kit
 
 ## Setup & Usage
 
-1) Create templates in `templates/parts-kit` (examples below).
+1. Create templates in `templates/parts-kit` (examples below).
 
-2) Visit `/parts-kit` on your site. The plugin registers this route and renders the UI.
+2. Visit `/parts-kit` on your site. The plugin registers this route and renders the UI.
 
 That’s it. The UI fetches its config from the plugin’s JSON endpoint and lists your parts automatically.
 
@@ -74,7 +72,7 @@ Each file is rendered at a clean URL that mirrors the path without the extension
 - `templates/parts-kit/button/default.twig` → `/parts-kit/button/default`
 - `templates/parts-kit/card/card-with-image.twig` → `/parts-kit/forms/select`
 
-The Parts Kit plugin provides an Action URL that returns a JSON config used by our Parts Kit UI. 
+The Parts Kit plugin provides an Action URL that returns a JSON config used by our Parts Kit UI.
 
 <details>
 <summary>Show Example JSON</summary>
@@ -100,21 +98,27 @@ The Parts Kit plugin provides an Action URL that returns a JSON config used by o
 
 </details>
 
-
 ## Example usage in templates
 
+- Create a file in the `/parts-kit` directory.
+- Extend the `parts-kit/layout.twig` file.
+- Place markup in the `main` block.
+
 ```twig
-TODO show what layouts and blocks need to be use. 
+{% extends 'parts-kit/layout.twig' %}
 
-TODO make the layout name configurable. 
+{% from '_components/alert-banner' import AlertBanner %}
+
+{% block main %}
+  {{ AlertBanner({
+    title: 'Dismissible Alert Banner',
+    description: 'Cillum dolor nisi et sunt in in et ullamco eiusmod duis aute et fugiat excepteur. Sit irure consectetur anim do aliqua excepteur amet nulla magna enim proident incididunt ipsum.',
+    dismissible: true,
+  }) }}
+{% endblock %}
+
 ```
-
-## Configuration
-
-TODO
 
 ## Credits
 
 Built by [Viget](https://www.viget.com). The Parts Kit UI is powered by our JavaScript library documented at [vigetlabs/parts-kit](https://github.com/vigetlabs/parts-kit).
-
-
