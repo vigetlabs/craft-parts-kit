@@ -1,16 +1,19 @@
 # Craft CMS Parts Kit Plugin
 
-Decoupled parts kit for Craft CMS that powers a Storybook-esque UI using your actual Twig templates. This plugin scans your `templates/parts-kit` directory, builds a navigation JSON, and serves a prebuilt UI that loads each part in an iframe.
+A simple component library plugin for Craft CMS (think [Storybook](https://storybook.js.org/) or [Fractal](https://fractal.build/)).
 
-The UI is provided by the Parts Kit JS library. See the JS project docs: [vigetlabs/parts-kit](https://github.com/vigetlabs/parts-kit).
+It uses Craft's built-in Twig rendering and does not depend on build tools or npm packages. 
+
+This plugin scans your `templates/parts-kit` directory and serves a prebuilt UI that loads each component in an iframe.
+
+The UI is provided by Viget's [Parts Kit Web Component](https://github.com/vigetlabs/parts-kit). A minimal UI that renders components in an iframe.
 
 https://github.com/user-attachments/assets/b1205f58-1d8b-4c73-9bad-60b3e6eb2015
 
 ## Key features
 
 - Low abstraction: render with your real Twig templates
-- Zero-build UI: just a script tag and a custom element
-- Auto-generated navigation from your `templates/parts-kit` files
+- Zero-build tools: Simply add Twig files to the `templates/parts-kit` directory. 
 - Clean URLs for each part (e.g. `/parts-kit/button/default`)
 
 ## Requirements
@@ -19,11 +22,11 @@ This plugin requires Craft CMS 5.0.0 or later, and PHP 8.2 or later.
 
 ## Installation
 
-You can install this plugin from the Plugin Store or with Composer.
+You can install this plugin from the Craft Plugin Store (Coming Soon) or with Composer.
 
-### From the Plugin Store
+### From the Plugin Store (Coming Soon)
 
-Go to the Plugin Store in your project’s Control Panel and search for Parts Kit”. Then press “Install”.
+Go to the Plugin Store in your project’s Control Panel and search for “Parts Kit”. Then press “Install”.
 
 ### With Composer
 
@@ -37,7 +40,7 @@ cd /path/to/my-project
 composer require viget/craft-parts-kit
 
 # tell Craft to install the plugin
-craft plugin/install craft-parts-kit
+craft plugin/install parts-kit
 ```
 
 ## Setup & Usage
