@@ -44,9 +44,43 @@ craft plugin/install craft-parts-kit
 
 1. Create templates in `templates/parts-kit` (examples below).
 
-2. Visit `/parts-kit` on your site. The plugin registers this route and renders the UI.
+2. (Optional) Create a configuration file at `config/parts-kit.php` to customize settings.
 
-That’s it. The UI fetches its config from the plugin’s JSON endpoint and lists your parts automatically.
+3. Visit `/parts-kit` on your site. The plugin registers this route and renders the UI.
+
+That's it. The UI fetches its config from the plugin's JSON endpoint and lists your parts automatically.
+
+## Configuration
+
+You can customize the plugin's behavior by creating a `config/parts-kit.php` file in your project:
+
+```php
+<?php
+
+return [
+    // The directory where your parts kit templates are located.
+    // This is both the URL you access and the path in your project's templates directory.
+    // Default: 'parts-kit'
+    'directory' => 'parts-kit',
+
+    // Path to a Twig template that loads scripts & styles used by your parts.
+    // This partial should contain the CSS and JS needed by your components.
+    // The same partial can (and probably should) be included in your project's layout.
+    // Default: null
+    'headTemplatePath' => '_partials/head.twig',
+];
+```
+
+### Example Head Template
+
+Create a partial at `templates/_partials/head.twig`:
+
+```twig
+<link rel="stylesheet" href="/path/to/your/styles.css">
+<script src="/path/to/your/scripts.js"></script>
+```
+
+This partial will be automatically included in the `<head>` of each parts kit page. You can also include this same partial in your main site layout to ensure consistency.
 
 ## Creating & Organizing Your Parts (Twig templates)
 
@@ -98,26 +132,20 @@ The Parts Kit plugin provides an Action URL that returns a JSON config used by o
 
 </details>
 
-## Example usage in templates
+## Example Usage in Templates
 
-- Create a file in the `/parts-kit` directory.
-- Extend the `parts-kit/layout.twig` file.
-- Place markup in the `main` block.
+Create a file in the `templates/parts-kit/button/default.twig` directory and simply import and render your component:
 
 ```twig
-{% extends 'parts-kit/layout.twig' %}
+{% from '_components/button' import Button %}
 
-{% from '_components/alert-banner' import AlertBanner %}
-
-{% block main %}
-  {{ AlertBanner({
-    title: 'Dismissible Alert Banner',
-    description: 'Cillum dolor nisi et sunt in in et ullamco eiusmod duis aute et fugiat excepteur. Sit irure consectetur anim do aliqua excepteur amet nulla magna enim proident incididunt ipsum.',
-    dismissible: true,
-  }) }}
-{% endblock %}
-
+{{ Button({
+  text: 'Button Primary',
+  size: 'lg',
+}) }}
 ```
+
+That's it! No need to extend layouts or wrap your code in blocks.
 
 ## Credits
 
