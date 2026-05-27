@@ -6,6 +6,7 @@ use Craft;
 use craft\elements\User;
 use FunctionalTester;
 use Twig\Error\RuntimeError;
+use yii\web\ForbiddenHttpException;
 
 /**
  * Exercises the permission-gated parts-kit route (`{directory}` ->
@@ -39,9 +40,14 @@ class PartsKitRouteCest
     {
         // With no user logged in, root.twig's {% requirePermission %} denies the
         // request. Craft surfaces this during template rendering as a
-        // Twig\Error\RuntimeError wrapping ForbiddenHttpException.
-        $I->expectThrowable(RuntimeError::class, function () use ($I) {
+        // Twig\Error\RuntimeError wrapping a ForbiddenHttpException. Asserting the
+        // wrapped cause ensures we're verifying the permission gate specifically,
+        // not just any Twig runtime error.
+        try {
             $I->amOnPage('/parts-kit');
-        });
+            $I->fail('Expected requirePermission to deny the anonymous request.');
+        } catch (RuntimeError $e) {
+            $I->assertInstanceOf(ForbiddenHttpException::class, $e->getPrevious());
+        }
     }
 }

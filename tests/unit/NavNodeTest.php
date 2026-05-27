@@ -40,5 +40,12 @@ class NavNodeTest extends Unit
         $this->assertCount(1, $json['children']);
         $this->assertInstanceOf(NavNode::class, $json['children'][0]);
         $this->assertSame('Default', $json['children'][0]->title);
+
+        // Round-trip through json_encode to prove the JsonSerializable contract
+        // propagates into nested NavNode children and drops `path` at depth.
+        $encoded = json_decode(json_encode($parent), true);
+        $this->assertSame('Default', $encoded['children'][0]['title']);
+        $this->assertSame('/parts-kit/button/default', $encoded['children'][0]['url']);
+        $this->assertArrayNotHasKey('path', $encoded['children'][0]);
     }
 }
