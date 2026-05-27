@@ -1,7 +1,7 @@
 ---
 title: "feat: Add Codeception test suite"
 type: feat
-status: active
+status: completed
 date: 2026-05-27
 deepened: 2026-05-27
 ---
