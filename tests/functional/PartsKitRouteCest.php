@@ -2,45 +2,46 @@
 
 namespace viget\partskit\tests\functional;
 
+use Craft;
+use craft\elements\User;
 use FunctionalTester;
+use Twig\Error\RuntimeError;
 
 /**
- * Exercises the permission-gated parts-kit route registered by the plugin
- * (`{directory}` -> `parts-kit/view/root`, default directory `parts-kit`).
+ * Exercises the permission-gated parts-kit route (`{directory}` ->
+ * `parts-kit/view/root`, default directory `parts-kit`).
  *
- * Status (ticket #16, R4): marked incomplete pending CI verification.
- *
- * The view permission is NOT enforced in ViewController (which sets
- * `allowAnonymous = ['root', 'template']`) — it is enforced inside `root.twig`
- * via `{% requirePermission 'parts-kit:view' %}`, gated by `settings.requireViewPermission`
- * (default true). That makes both assertions below depend on Twig rendering through the
- * `\craft\test\Craft` functional connector.
- *
- * craft-viget-base's equivalent functional suite is entirely `markTestIncomplete`
- * ("Twig extensions don't load for some reason"), and this harness has no local database
- * to verify against. The assertions capture the intended behavior; remove the
- * `markTestIncomplete()` calls (and wire the login helper) once this is confirmed green
- * on CI. If functional Twig rendering proves as fragile as base's, R4 stays deferred.
+ * The gate lives in root.twig via `{% requirePermission 'parts-kit:view' %}`,
+ * controlled by `settings.requireViewPermission` (default true). These tests run
+ * against that production default — an admin renders the page, an anonymous user
+ * is denied. CI confirmed Twig renders through the `\craft\test\Craft` functional
+ * connector, unlike craft-viget-base's functional suite.
  */
 class PartsKitRouteCest
 {
-    public function anonymousAccessIsDenied(FunctionalTester $I): void
+    public function adminCanViewPartsKit(FunctionalTester $I): void
     {
-        $I->markTestIncomplete('Pending CI verification — see class docblock (#16, R4).');
+        $user = new User();
+        $user->admin = true;
+        $user->username = 'parts-kit-tester';
+        $user->email = 'parts-kit-tester@example.test';
+        Craft::$app->getElements()->saveElement($user, false);
 
-        // requireViewPermission defaults true, so root.twig's {% requirePermission %}
-        // should deny an anonymous request (403, or a redirect to the login page).
-        $I->amOnPage('/parts-kit');
-        $I->seeResponseCodeIsClientError();
-    }
+        // Admins pass requirePermission, so the gated root template renders.
+        $I->amLoggedInAs($user);
 
-    public function permittedUserCanViewPartsKit(FunctionalTester $I): void
-    {
-        $I->markTestIncomplete('Pending CI verification + login wiring — see class docblock (#16, R4).');
-
-        // TODO: log in a user that holds `parts-kit:view` (or an admin), e.g. via a Craft
-        // user fixture + $I->amLoggedInAs($user), then assert the root parts-kit UI renders.
         $I->amOnPage('/parts-kit');
         $I->seeResponseCodeIs(200);
+        $I->seeInSource('<parts-kit');
+    }
+
+    public function anonymousIsDeniedByThePermissionGate(FunctionalTester $I): void
+    {
+        // With no user logged in, root.twig's {% requirePermission %} denies the
+        // request. Craft surfaces this during template rendering as a
+        // Twig\Error\RuntimeError wrapping ForbiddenHttpException.
+        $I->expectThrowable(RuntimeError::class, function () use ($I) {
+            $I->amOnPage('/parts-kit');
+        });
     }
 }
