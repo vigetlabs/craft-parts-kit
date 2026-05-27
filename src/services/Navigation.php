@@ -5,7 +5,7 @@ namespace viget\partskit\services;
 use Craft;
 use craft\helpers\FileHelper;
 use craft\helpers\StringHelper;
-use illuminate\Support\Collection;
+use Illuminate\Support\Collection;
 use viget\partskit\models\NavNode;
 use yii\base\Component;
 use yii\base\Exception;
@@ -33,7 +33,10 @@ class Navigation extends Component
             ...$directories,
             ...$files,
         ])
-            ->reject(self::_isHiddenFileOrDirectory(...))
+            // Check the path *relative to* the parts kit dir, so ancestor directories
+            // that happen to start with `_` or `.` (e.g. `_craft` in tests) don't cause
+            // every template to be treated as hidden.
+            ->reject(fn(string $path) => self::_isHiddenFileOrDirectory(str_replace($partsPath, '', $path)))
             ->values()
             ->toArray();
 
