@@ -27,6 +27,23 @@ Run a single test class or method (use the suite-relative path under `tests/<sui
 
 Add `--env fast` to skip the DB rebuild between runs (`./vendor/bin/codecept run unit --env fast`). The suite must run **without** `--env fast` at least once first to build the schema.
 
+## Local runtime (DDEV)
+
+For manual, in-browser development there is a DDEV harness, **distinct from** the Codeception test harness above. It boots a real Craft 5 install with the plugin symlinked in:
+
+```bash
+ddev start   # Start containers
+ddev setup   # Install Craft + plugin (idempotent — see .ddev/commands/web/setup)
+```
+
+Then `/parts-kit` renders at `https://craft-parts-kit.ddev.site/parts-kit` and the CP is at `/admin` (`admin` / `password`).
+
+**Root ↔ craft-install relationship.** The plugin source is the repo root; `craft-install/` is a full Craft app whose `composer.json` lists the repo root (`../`) as a `type: path` repository with `symlink: true` and requires `viget/craft-parts-kit: "@dev"`. Composer symlinks `craft-install/vendor/viget/craft-parts-kit` → repo root, so `src/` edits are live without reinstalling. `@dev` (not `dev-main`) is used so the path repo resolves on any branch. The root `craft` script bootstraps the console app via `craft-install/bootstrap.php`.
+
+**Gotcha — `ddev composer` targets the plugin root.** `.ddev/config.yaml` sets `composer_root: "."`, overriding the `craftcms` type default. So `ddev composer` operates on the plugin's `composer.json`. To manage Craft app dependencies, run them against `craft-install/`: `ddev exec -d /var/www/html/craft-install composer require <package>`.
+
+**Dev-only files.** `craft-install/`, `.ddev/`, and the root `craft` script are `export-ignore`d in `.gitattributes`, so they never ship in the distributed Composer package. `craft-install/config/parts-kit.php` sets `requireViewPermission => false` for anonymous viewing in dev only; the plugin's production default stays `true`. The setup script installs Craft fresh and runs `plugin/install`—there is no committed `project.yaml`.
+
 ## Test harness setup
 
 Tests run against a **real Craft instance backed by a real database**—there is no in-memory mode. Before running locally:

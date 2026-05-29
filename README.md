@@ -185,6 +185,40 @@ Once the suite has run at least once, add `--env fast` to skip the database rebu
 
 Continuous integration runs the suite on every push and pull request against MySQL and PostgreSQL (see `.github/workflows/`).
 
+## Local development with DDEV
+
+This repo ships a [DDEV](https://ddev.com/) harness so you can boot a real Craft CMS install with the plugin loaded and live-editable. The plugin source lives at the repo root; a full Craft app lives in `craft-install/` and loads the plugin via a Composer [path repository](https://getcomposer.org/doc/05-repositories.md#path) (a symlink), so edits to `src/` are reflected immediately.
+
+### Getting started
+
+```bash
+ddev start   # Start the containers
+ddev setup   # Install Craft + the plugin (idempotent, safe to re-run)
+```
+
+Then visit:
+
+- **https://craft-parts-kit.ddev.site/parts-kit** — the component library, pre-populated with sample parts
+- **https://craft-parts-kit.ddev.site/admin** — the control panel (login `admin` / `password`)
+
+The dev install ships a few sample parts under `craft-install/templates/parts-kit/` and a `craft-install/config/parts-kit.php` that sets `requireViewPermission => false`, so `/parts-kit` is viewable anonymously without logging in. These dev-only files are excluded from the distributed plugin package and do not change the plugin's production defaults.
+
+### Useful commands
+
+```bash
+ddev craft <command>                  # Run Craft CLI (e.g. migrate/all, plugin/list)
+ddev composer <command>               # Operates on the PLUGIN root composer.json
+ddev craft clear-caches/cp-resources  # Clear CP asset caches after JS/CSS changes
+```
+
+> **Gotcha:** `composer_root` is set to `.` in `.ddev/config.yaml`, so `ddev composer` targets the plugin's root `composer.json`, not the Craft app. To manage Craft app dependencies, run them against `craft-install/` explicitly:
+>
+> ```bash
+> ddev exec -d /var/www/html/craft-install composer require <package>
+> ```
+
+> **Note:** The browsing UI loads from the unpkg CDN, so the dev environment needs network access.
+
 ## Credits
 
 Built by [Viget](https://www.viget.com). The Parts Kit UI is powered by our JavaScript library documented at [vigetlabs/parts-kit](https://github.com/vigetlabs/parts-kit).

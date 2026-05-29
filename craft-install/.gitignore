@@ -1,0 +1,7 @@
+/.env
+/vendor/
+/config/license.key
+/storage/*
+!/storage/.gitignore
+/web/cpresources/*
+!/web/cpresources/.gitignore

@@ -7,3 +7,10 @@
 /vendor
 .vscode
 composer.lock
+
+# DDEV / craft-install dev harness (also covered by craft-install/.gitignore)
+/craft-install/.env
+/craft-install/vendor
+/craft-install/storage/*
+!/craft-install/storage/.gitignore
+/craft-install/composer.lock

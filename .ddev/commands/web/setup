@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+## Description: Set up the Craft CMS plugin development environment
+## Usage: setup
+## Example: "ddev setup"
+## ExecRaw: true
+## MutagenSync: true
+
+set -eu -o pipefail
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+status() { printf "${GREEN}==> %s${NC}\n" "$1"; }
+skip()   { printf "${YELLOW}==> %s${NC}\n" "$1"; }
+
+# Step 1: Install Craft app dependencies (idempotent)
+status "Installing Craft app dependencies..."
+cd /var/www/html/craft-install && composer install --no-interaction
+
+# Step 2: Copy .env if it doesn't exist
+if [ ! -f /var/www/html/craft-install/.env ]; then
+    status "Creating .env from example..."
+    cp /var/www/html/craft-install/.env.example /var/www/html/craft-install/.env
+else
+    skip "Skipping .env copy (already exists)"
+fi
+
+# Step 3: Generate security key + app ID (if not set)
+cd /var/www/html
+if ! grep -q "^CRAFT_SECURITY_KEY=.\+" craft-install/.env 2>/dev/null; then
+    status "Generating security key and app ID..."
+    php craft setup/keys
+else
+    skip "Skipping key generation (already set)"
+fi
+
+# Step 4: Install Craft (guarded by install/check)
+if ! php craft install/check 2>/dev/null; then
+    status "Installing Craft..."
+    php craft install/craft --interactive=0 \
+        --username=admin \
+        --password=password \
+        --email=admin@example.com \
+        --site-name="Parts Kit Dev" \
+        --site-url="\$PRIMARY_SITE_URL" \
+        --language=en-US
+else
+    skip "Skipping Craft install (already installed)"
+fi
+
+# Step 5: Install plugin (safe to re-run)
+status "Installing plugin..."
+php craft plugin/install parts-kit || php craft plugin/enable parts-kit
+
+echo ""
+status "Setup complete!"
+echo "    Site:  https://craft-parts-kit.ddev.site"
+echo "    Parts: https://craft-parts-kit.ddev.site/parts-kit"
+echo "    Admin: https://craft-parts-kit.ddev.site/admin"
+echo "    Login: admin / password"
+echo ""
+echo "    # DEV ONLY — never use these credentials in production"
