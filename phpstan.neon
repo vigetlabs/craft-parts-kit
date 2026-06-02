@@ -5,3 +5,21 @@ parameters:
     level: 4
     paths:
         - src
+        - tests
+    excludePaths:
+        # Codeception-generated code PHPStan can't resolve without building:
+        # the gitignored actions trait, the committed actor stubs, and the
+        # compiled Craft test-instance storage.
+        - tests/_support/_generated/*
+        - tests/_support/UnitTester.php
+        - tests/_support/FunctionalTester.php
+        - tests/_craft/storage/*
+    ignoreErrors:
+        # The Codeception actor classes (UnitTester/FunctionalTester) and the
+        # module methods they expose ($I->amOnPage(), $this->tester, etc.) are
+        # generated code that is excluded from analysis and absent from a clean
+        # checkout, so PHPStan cannot resolve these symbols. The patterns name
+        # the actor classes explicitly, so they never mask real src/ findings.
+        - '#has invalid type (Unit|Functional)Tester\.#'
+        - '#has unknown class (Unit|Functional)Tester as its type\.#'
+        - '#Call to method \S+\(\) on an unknown class (Unit|Functional)Tester\.#'
