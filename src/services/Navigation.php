@@ -5,7 +5,7 @@ namespace viget\partskit\services;
 use Craft;
 use craft\helpers\FileHelper;
 use craft\helpers\StringHelper;
-use illuminate\Support\Collection;
+use Illuminate\Support\Collection;
 use viget\partskit\models\NavNode;
 use yii\base\Component;
 use yii\base\Exception;
@@ -33,7 +33,10 @@ class Navigation extends Component
             ...$directories,
             ...$files,
         ])
-            ->reject(self::_isHiddenFileOrDirectory(...))
+            // Check the path *relative to* the parts kit dir, so ancestor directories
+            // that happen to start with `_` or `.` (e.g. `_craft` in tests) don't cause
+            // every template to be treated as hidden.
+            ->reject(fn(string $path) => self::_isHiddenFileOrDirectory(self::_relativePath($partsPath, $path)))
             ->values()
             ->toArray();
 
@@ -55,7 +58,7 @@ class Navigation extends Component
                 continue;
             }
 
-            $path = str_replace($partsPath, '', $templatePath);
+            $path = self::_relativePath($partsPath, $templatePath);
             $pathParts = explode('/', $path);
             $title = self::_formatTitle(end($pathParts));
             $url = is_file($templatePath)
@@ -113,6 +116,11 @@ class Navigation extends Component
         foreach ($node->children as $child) {
             self::_sortChildren($child);
         }
+    }
+
+    private static function _relativePath(string $partsPath, string $path): string
+    {
+        return str_replace($partsPath, '', $path);
     }
 
     private static function _formatTitle(string $str): string

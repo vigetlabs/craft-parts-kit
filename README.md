@@ -155,6 +155,36 @@ Create a file in the `templates/parts-kit/button/default.twig` directory and sim
 
 That's it! No need to extend layouts or wrap your code in blocks.
 
+## Testing
+
+The plugin uses [Codeception](https://codeception.com/) with Craft's testing framework. Tests run against a real Craft instance, so a database is required.
+
+1. Install the dev dependencies:
+
+   ```bash
+   composer install
+   ```
+
+2. Create a `craft_test` database (MySQL or PostgreSQL).
+
+3. Copy the matching env example to `tests/.env` and fill in your database credentials:
+
+   ```bash
+   cp tests/.env.example.mysql tests/.env   # or tests/.env.example.pgsql
+   ```
+
+4. Run the suite:
+
+   ```bash
+   composer test              # all suites
+   composer test-unit         # unit suite only
+   composer test-functional   # functional suite only
+   ```
+
+Once the suite has run at least once, add `--env fast` to skip the database rebuild between runs (e.g. `./vendor/bin/codecept run unit --env fast`).
+
+Continuous integration runs the suite on every push and pull request against MySQL and PostgreSQL (see `.github/workflows/`).
+
 ## Credits
 
 Built by [Viget](https://www.viget.com). The Parts Kit UI is powered by our JavaScript library documented at [vigetlabs/parts-kit](https://github.com/vigetlabs/parts-kit).

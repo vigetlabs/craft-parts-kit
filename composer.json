@@ -10,12 +10,22 @@
     "craftcms/cms": "^5.0.0"
   },
   "require-dev": {
+    "codeception/codeception": "^5.0.11",
+    "codeception/module-asserts": "^3.0.0",
+    "codeception/module-phpbrowser": "^3.0.0",
+    "codeception/module-yii2": "^1.1.9",
     "craftcms/ecs": "dev-main",
-    "craftcms/phpstan": "dev-main"
+    "craftcms/phpstan": "dev-main",
+    "vlucas/phpdotenv": "^5.5"
   },
   "autoload": {
     "psr-4": {
       "viget\\partskit\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "viget\\partskit\\tests\\": "tests/"
     }
   },
   "extra": {
@@ -27,7 +37,10 @@
   "scripts": {
     "check-cs": "ecs check --ansi",
     "fix-cs": "ecs check --ansi --fix",
-    "phpstan": "phpstan --memory-limit=1G"
+    "phpstan": "phpstan --memory-limit=1G",
+    "test": "codecept run",
+    "test-unit": "codecept run unit",
+    "test-functional": "codecept run functional"
   },
   "config": {
     "sort-packages": true,
