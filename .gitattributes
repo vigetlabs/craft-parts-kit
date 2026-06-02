@@ -1,8 +1,12 @@
 # Do not export those files in the Composer archive (lighter dependency)
+.ddev/ export-ignore
 .gitattributes export-ignore
 .github/ export-ignore
 .gitignore export-ignore
 CHANGELOG.md export-ignore
+craft export-ignore
+craft-install/ export-ignore
+docs/ export-ignore
 README.md export-ignore
 SECURITY.md export-ignore
 composer.lock export-ignore

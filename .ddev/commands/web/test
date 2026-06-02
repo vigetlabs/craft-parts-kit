@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+## Description: Run the plugin's Codeception suite against a DDEV-managed craft_test DB
+## Usage: test [args]
+## Example: "ddev test", "ddev test unit", "ddev test --env fast", "ddev test functional PartsKitRouteCest"
+## ExecRaw: true
+## MutagenSync: true
+
+set -eu -o pipefail
+
+cd /var/www/html
+
+# 1. Plugin dev dependencies (Codeception, PHPStan, ECS) live in the plugin-root
+#    vendor/, separate from craft-install/vendor/. Install them on first use.
+if [ ! -f vendor/bin/codecept ]; then
+    echo "==> Installing plugin dev dependencies..."
+    composer install --no-interaction
+fi
+
+# 2. A dedicated craft_test database. NEVER the dev site's `db` — the suite runs
+#    dbSetup.clean and would wipe your dev content. Created as root, then granted
+#    to the `db` user the tests authenticate as.
+echo "==> Ensuring craft_test database exists..."
+mysql -uroot -proot -hdb -e \
+    "CREATE DATABASE IF NOT EXISTS craft_test; GRANT ALL ON craft_test.* TO 'db'@'%'; FLUSH PRIVILEGES;"
+
+# 3. tests/.env pointed at the DDEV database (created once from the mysql example;
+#    DB_DATABASE is already craft_test there, so only host/user/password change).
+if [ ! -f tests/.env ]; then
+    echo "==> Creating tests/.env for DDEV..."
+    cp tests/.env.example.mysql tests/.env
+    sed -i \
+        -e 's/^DB_SERVER=.*/DB_SERVER=db/' \
+        -e 's/^DB_USER=.*/DB_USER=db/' \
+        -e 's/^DB_PASSWORD=.*/DB_PASSWORD=db/' \
+        tests/.env
+fi
+
+# 4. Run the suite against craft_test.
+#    CRITICAL: Craft honors the CRAFT_DB_* environment variables over config/db.php,
+#    and DDEV injects CRAFT_DB_DATABASE=db into the web container. Without this
+#    override the test framework's dbSetup.clean connects to the dev site's `db`
+#    and wipes it (tests/.env's legacy DB_* vars get overridden by CRAFT_DB_*).
+#    Forcing CRAFT_DB_DATABASE here keeps the suite isolated to craft_test.
+#    With no args, runs every suite; any args pass straight through to codecept.
+CRAFT_DB_DATABASE=craft_test ./vendor/bin/codecept run "$@"

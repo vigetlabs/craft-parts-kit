@@ -1,0 +1,41 @@
+name: Package contents
+
+# Guards the export-ignore boundary in .gitattributes: the DDEV dev harness
+# (craft-install/, .ddev/, docs/, the root `craft` script) must never ship in
+# the distributed Composer package. craft-install/config/parts-kit.php sets
+# requireViewPermission => false for anonymous dev viewing, so a leak would
+# disable the plugin's auth gate for consumers. `git archive` honors
+# export-ignore exactly as Packagist does when building the dist tarball.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  archive-excludes-dev-harness:
+    name: Dev harness excluded from Composer archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assert dev-only paths are export-ignored
+        run: |
+          contents=$(git archive HEAD --format=tar | tar -t)
+
+          leaked=$(printf '%s\n' "$contents" \
+            | grep -E '^(craft-install/|\.ddev/|docs/|craft$)' || true)
+          if [ -n "$leaked" ]; then
+            echo "::error::Dev-only files leaked into the Composer archive:"
+            printf '%s\n' "$leaked"
+            exit 1
+          fi
+
+          # Sanity check the opposite direction: the plugin payload must ship.
+          for required in src/ composer.json LICENSE.md; do
+            if ! printf '%s\n' "$contents" | grep -q "^${required}"; then
+              echo "::error::Expected '${required}' in the Composer archive but it was missing."
+              exit 1
+            fi
+          done
+
+          echo "Composer archive excludes the dev harness and includes the plugin payload."

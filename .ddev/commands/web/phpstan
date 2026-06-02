@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+## Description: Run PHPStan static analysis on the plugin (src/, level 4)
+## Usage: phpstan
+## Example: "ddev phpstan"
+## ExecRaw: true
+
+set -eu -o pipefail
+
+cd /var/www/html
+
+# PHPStan (like the test suite) lives in the plugin-root vendor/, separate from
+# craft-install/vendor/. Install the plugin dev dependencies on first use.
+# PHPStan is static analysis only — no database required.
+if [ ! -f vendor/bin/phpstan ]; then
+    echo "==> Installing plugin dev dependencies..."
+    composer install --no-interaction
+fi
+
+composer phpstan

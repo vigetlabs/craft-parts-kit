@@ -6,7 +6,7 @@ It uses Craft's built-in Twig rendering and does not depend on build tools or np
 
 This plugin scans your `templates/parts-kit` directory and serves a prebuilt UI that loads each component in an iframe.
 
-The UI is provided by Viget's [Parts Kit Web Component](https://github.com/vigetlabs/parts-kit). A minimal UI that renders components in an iframe.
+The UI is provided by Viget's [Parts Kit Web Component](https://github.com/vigetlabs/parts-kit).
 
 https://github.com/user-attachments/assets/b1205f58-1d8b-4c73-9bad-60b3e6eb2015
 
@@ -112,7 +112,7 @@ templates/
 Each file is rendered at a clean URL that mirrors the path without the extension. For example:
 
 - `templates/parts-kit/button/default.twig` → `/parts-kit/button/default`
-- `templates/parts-kit/card/card-with-image.twig` → `/parts-kit/forms/select`
+- `templates/parts-kit/forms/text-input.twig` → `/parts-kit/forms/text-input`
 
 The Parts Kit plugin provides an Action URL that returns a JSON config used by our Parts Kit UI.
 
@@ -183,7 +183,43 @@ The plugin uses [Codeception](https://codeception.com/) with Craft's testing fra
 
 Once the suite has run at least once, add `--env fast` to skip the database rebuild between runs (e.g. `./vendor/bin/codecept run unit --env fast`).
 
-Continuous integration runs the suite on every push and pull request against MySQL and PostgreSQL (see `.github/workflows/`).
+Continuous integration runs the suite on PHP 8.2 against MySQL and PostgreSQL for every pull request and pushes to `main` (see `.github/workflows/ci.yml`).
+
+## Local development with DDEV
+
+This repo ships a [DDEV](https://ddev.com/) harness so you can boot a real Craft CMS install with the plugin loaded and live-editable. The plugin source lives at the repo root; a full Craft app lives in `craft-install/` and loads the plugin via a Composer [path repository](https://getcomposer.org/doc/05-repositories.md#path) (a symlink), so edits to `src/` are reflected immediately.
+
+### Getting started
+
+```bash
+ddev start   # Start the containers
+ddev setup   # Install Craft + the plugin (idempotent, safe to re-run)
+```
+
+Then visit:
+
+- **https://craft-parts-kit.ddev.site/parts-kit** — the component library, pre-populated with sample parts
+- **https://craft-parts-kit.ddev.site/admin** — the control panel (login `admin` / `password`)
+
+The dev install ships a few sample parts under `craft-install/templates/parts-kit/` and a `craft-install/config/parts-kit.php` that sets `requireViewPermission => false`, so `/parts-kit` is viewable anonymously without logging in. These dev-only files are excluded from the distributed plugin package and do not change the plugin's production defaults.
+
+### Useful commands
+
+```bash
+ddev test [args]                      # Run the Codeception suite (e.g. ddev test unit, ddev test --env fast)
+ddev phpstan                          # Run PHPStan static analysis (src/, level 4)
+ddev craft <command>                  # Run Craft CLI (e.g. migrate/all, plugin/list)
+ddev composer <command>               # Operates on the PLUGIN root composer.json
+ddev craft clear-caches/cp-resources  # Clear CP asset caches after JS/CSS changes
+```
+
+> **Gotcha:** `composer_root` is set to `.` in `.ddev/config.yaml`, so `ddev composer` targets the plugin's root `composer.json`, not the Craft app. To manage Craft app dependencies, run them against `craft-install/` explicitly:
+>
+> ```bash
+> ddev exec -d /var/www/html/craft-install composer require <package>
+> ```
+
+> **Note:** The browsing UI loads from the unpkg CDN, so the dev environment needs network access.
 
 ## Credits
 

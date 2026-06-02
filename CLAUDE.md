@@ -27,6 +27,25 @@ Run a single test class or method (use the suite-relative path under `tests/<sui
 
 Add `--env fast` to skip the DB rebuild between runs (`./vendor/bin/codecept run unit --env fast`). The suite must run **without** `--env fast` at least once first to build the schema.
 
+## Local runtime (DDEV)
+
+For manual, in-browser development there is a DDEV harness, **distinct from** the Codeception test harness above. It boots a real Craft 5 install with the plugin symlinked in:
+
+```bash
+ddev start   # Start containers
+ddev setup   # Install Craft + plugin (idempotent — see .ddev/commands/web/setup)
+```
+
+Then `/parts-kit` renders at `https://craft-parts-kit.ddev.site/parts-kit` and the CP is at `/admin` (`admin` / `password`).
+
+**Running the test suite / PHPStan in the container.** `ddev test` and `ddev phpstan` (commands in `.ddev/commands/web/`) run Codeception and PHPStan inside the web container. Both install the plugin-root dev dependencies on demand—these live in the plugin's own `vendor/`, separate from `craft-install/vendor/`. `ddev test` additionally provisions a dedicated `craft_test` database and a DDEV-pointed `tests/.env` on first run; `craft_test` is kept separate from the dev site's `db` because the suite runs `dbSetup.clean` and would otherwise wipe your dev content. Pass args straight through: `ddev test unit`, `ddev test --env fast`, `ddev test functional PartsKitRouteCest`.
+
+**Root ↔ craft-install relationship.** The plugin source is the repo root; `craft-install/` is a full Craft app whose `composer.json` lists the repo root (`../`) as a `type: path` repository with `symlink: true` and requires `viget/craft-parts-kit: "@dev"`. Composer symlinks `craft-install/vendor/viget/craft-parts-kit` → repo root, so `src/` edits are live without reinstalling. `@dev` (not `dev-main`) is used so the path repo resolves on any branch. The root `craft` script bootstraps the console app via `craft-install/bootstrap.php`.
+
+**Gotcha — `ddev composer` targets the plugin root.** `.ddev/config.yaml` sets `composer_root: "."`, overriding the `craftcms` type default. So `ddev composer` operates on the plugin's `composer.json`. To manage Craft app dependencies, run them against `craft-install/`: `ddev exec -d /var/www/html/craft-install composer require <package>`.
+
+**Dev-only files.** `craft-install/`, `.ddev/`, the root `craft` script, and `docs/` are `export-ignore`d in `.gitattributes`, so they never ship in the distributed Composer package—`.github/workflows/package-contents.yml` fails CI if any of them leak into the `git archive`. `craft-install/config/parts-kit.php` sets `requireViewPermission => false` for anonymous viewing in dev only; the plugin's production default stays `true`. The setup script installs Craft fresh and runs `plugin/install`—there is no committed `project.yaml`, and `craft-install/config/project/` is git-ignored so Craft's live project-config sync doesn't dirty the working tree.
+
 ## Test harness setup
 
 Tests run against a **real Craft instance backed by a real database**—there is no in-memory mode. Before running locally:
@@ -38,7 +57,7 @@ The plugin is auto-discovered as a `craft-plugin` and installed by handle in `co
 
 Unlike sibling plugins (e.g. craft-viget-base), the functional suite **does** work here: Twig renders through the `\craft\test\Craft` connector, so HTTP-level route/permission tests are viable (see `tests/functional/PartsKitRouteCest.php`).
 
-`composer.lock` is git-ignored in this repo, so CI keys its Composer cache off `composer.json`. CI (`.github/workflows/`) runs the suite across MySQL and PostgreSQL on every push and PR.
+`composer.lock` is git-ignored in this repo, so CI keys its Composer cache off `composer.json`. CI (`.github/workflows/ci.yml` → `codecept.yml`) runs the suite on PHP 8.2 against both MySQL and PostgreSQL, for pull requests and pushes to `main`.
 
 ## Architecture
 
