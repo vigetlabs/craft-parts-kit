@@ -36,6 +36,11 @@ if [ ! -f tests/.env ]; then
         tests/.env
 fi
 
-# 4. Run the suite. With no args, runs every suite; any args pass straight through
-#    to codecept (e.g. `ddev test unit`, `ddev test --env fast`).
-./vendor/bin/codecept run "$@"
+# 4. Run the suite against craft_test.
+#    CRITICAL: Craft honors the CRAFT_DB_* environment variables over config/db.php,
+#    and DDEV injects CRAFT_DB_DATABASE=db into the web container. Without this
+#    override the test framework's dbSetup.clean connects to the dev site's `db`
+#    and wipes it (tests/.env's legacy DB_* vars get overridden by CRAFT_DB_*).
+#    Forcing CRAFT_DB_DATABASE here keeps the suite isolated to craft_test.
+#    With no args, runs every suite; any args pass straight through to codecept.
+CRAFT_DB_DATABASE=craft_test ./vendor/bin/codecept run "$@"
