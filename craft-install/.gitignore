@@ -1,6 +1,6 @@
 /.env
 /vendor/
-/config/license.key
+/config/license.key*
 /config/project/
 /storage/*
 !/storage/.gitignore
