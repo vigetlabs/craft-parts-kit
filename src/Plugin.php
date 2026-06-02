@@ -13,7 +13,6 @@ use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use craft\web\View;
 use viget\partskit\models\Settings;
-use viget\partskit\services\Assets;
 use viget\partskit\services\Navigation;
 use yii\base\Event;
 use yii\web\View as BaseView;
@@ -25,7 +24,6 @@ use yii\web\View as BaseView;
  * @author Viget <craft@viget.com>
  * @copyright Viget
  * @license MIT
- * @property-read Assets $assetService
  */
 class Plugin extends BasePlugin
 {
@@ -40,7 +38,6 @@ class Plugin extends BasePlugin
         return [
             'components' => [
                 'navigation' => Navigation::class,
-                'assets' => Assets::class,
             ],
         ];
     }
