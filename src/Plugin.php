@@ -15,7 +15,6 @@ use craft\web\View;
 use viget\partskit\models\Settings;
 use viget\partskit\services\Navigation;
 use yii\base\Event;
-use yii\web\View as BaseView;
 
 /**
  * Craft Parts Kit plugin
@@ -58,7 +57,7 @@ class Plugin extends BasePlugin
         parent::init();
 
         // Defer most setup tasks until Craft is fully initialized
-        Craft::$app->onInit(function () {
+        Craft::$app->onInit(function() {
             $this->attachEventHandlers();
             // ...
         });
@@ -69,7 +68,7 @@ class Plugin extends BasePlugin
         Event::on(
             View::class,
             View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS,
-            function (RegisterTemplateRootsEvent $event) {
+            function(RegisterTemplateRootsEvent $event) {
                 $event->roots[self::TEMPLATE_ROOT] = $this->getBasePath() . '/templates';
             }
         );
@@ -86,7 +85,7 @@ class Plugin extends BasePlugin
         Event::on(
             CraftVariable::class,
             CraftVariable::EVENT_INIT,
-            static function (Event $e) {
+            static function(Event $e) {
                 /** @var CraftVariable $variable */
                 $variable = $e->sender;
                 $variable->set('partsKit', self::getInstance());
@@ -97,7 +96,7 @@ class Plugin extends BasePlugin
         Event::on(
             UserPermissions::class,
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
-            function (RegisterUserPermissionsEvent $event) {
+            function(RegisterUserPermissionsEvent $event) {
                 $event->permissions[] = [
                     'heading' => 'Parts Kit',
                     'permissions' => [
@@ -111,9 +110,9 @@ class Plugin extends BasePlugin
     }
 
     /**
-     * Overrides the default `/parts-kit` paths to route them 
-     * through our custom controller action. 
-     * 
+     * Overrides the default `/parts-kit` paths to route them
+     * through our custom controller action.
+     *
      * This gives full control over the rendering of the parts kit UI and
      * bypasses the need for {% layout %} tags in parts kit templates.
      */

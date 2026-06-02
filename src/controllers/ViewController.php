@@ -11,7 +11,7 @@ use yii\web\Response;
 
 /**
  * View controller
- * 
+ *
  * Renders the root parts kit as well as invividual part examples
  */
 class ViewController extends Controller
@@ -31,7 +31,7 @@ class ViewController extends Controller
     /**
      * actions/parts-kit/view/template
      * parts-kit/<template>
-     * 
+     *
      * @see Plugin::_registerUrlRules()
      */
     public function actionTemplate(string $template = 'layout'): Response
