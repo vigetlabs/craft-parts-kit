@@ -38,6 +38,8 @@ ddev setup   # Install Craft + plugin (idempotent — see .ddev/commands/web/set
 
 Then `/parts-kit` renders at `https://craft-parts-kit.ddev.site/parts-kit` and the CP is at `/admin` (`admin` / `password`).
 
+**Running the test suite / PHPStan in the container.** `ddev test` and `ddev phpstan` (commands in `.ddev/commands/web/`) run Codeception and PHPStan inside the web container. Both install the plugin-root dev dependencies on demand—these live in the plugin's own `vendor/`, separate from `craft-install/vendor/`. `ddev test` additionally provisions a dedicated `craft_test` database and a DDEV-pointed `tests/.env` on first run; `craft_test` is kept separate from the dev site's `db` because the suite runs `dbSetup.clean` and would otherwise wipe your dev content. Pass args straight through: `ddev test unit`, `ddev test --env fast`, `ddev test functional PartsKitRouteCest`.
+
 **Root ↔ craft-install relationship.** The plugin source is the repo root; `craft-install/` is a full Craft app whose `composer.json` lists the repo root (`../`) as a `type: path` repository with `symlink: true` and requires `viget/craft-parts-kit: "@dev"`. Composer symlinks `craft-install/vendor/viget/craft-parts-kit` → repo root, so `src/` edits are live without reinstalling. `@dev` (not `dev-main`) is used so the path repo resolves on any branch. The root `craft` script bootstraps the console app via `craft-install/bootstrap.php`.
 
 **Gotcha — `ddev composer` targets the plugin root.** `.ddev/config.yaml` sets `composer_root: "."`, overriding the `craftcms` type default. So `ddev composer` operates on the plugin's `composer.json`. To manage Craft app dependencies, run them against `craft-install/`: `ddev exec -d /var/www/html/craft-install composer require <package>`.

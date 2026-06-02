@@ -206,6 +206,8 @@ The dev install ships a few sample parts under `craft-install/templates/parts-ki
 ### Useful commands
 
 ```bash
+ddev test [args]                      # Run the Codeception suite (e.g. ddev test unit, ddev test --env fast)
+ddev phpstan                          # Run PHPStan static analysis (src/, level 4)
 ddev craft <command>                  # Run Craft CLI (e.g. migrate/all, plugin/list)
 ddev composer <command>               # Operates on the PLUGIN root composer.json
 ddev craft clear-caches/cp-resources  # Clear CP asset caches after JS/CSS changes
