@@ -42,7 +42,7 @@ Then `/parts-kit` renders at `https://craft-parts-kit.ddev.site/parts-kit` and t
 
 **Gotcha — `ddev composer` targets the plugin root.** `.ddev/config.yaml` sets `composer_root: "."`, overriding the `craftcms` type default. So `ddev composer` operates on the plugin's `composer.json`. To manage Craft app dependencies, run them against `craft-install/`: `ddev exec -d /var/www/html/craft-install composer require <package>`.
 
-**Dev-only files.** `craft-install/`, `.ddev/`, and the root `craft` script are `export-ignore`d in `.gitattributes`, so they never ship in the distributed Composer package. `craft-install/config/parts-kit.php` sets `requireViewPermission => false` for anonymous viewing in dev only; the plugin's production default stays `true`. The setup script installs Craft fresh and runs `plugin/install`—there is no committed `project.yaml`.
+**Dev-only files.** `craft-install/`, `.ddev/`, the root `craft` script, and `docs/` are `export-ignore`d in `.gitattributes`, so they never ship in the distributed Composer package—`.github/workflows/package-contents.yml` fails CI if any of them leak into the `git archive`. `craft-install/config/parts-kit.php` sets `requireViewPermission => false` for anonymous viewing in dev only; the plugin's production default stays `true`. The setup script installs Craft fresh and runs `plugin/install`—there is no committed `project.yaml`, and `craft-install/config/project/` is git-ignored so Craft's live project-config sync doesn't dirty the working tree.
 
 ## Test harness setup
 
@@ -55,7 +55,7 @@ The plugin is auto-discovered as a `craft-plugin` and installed by handle in `co
 
 Unlike sibling plugins (e.g. craft-viget-base), the functional suite **does** work here: Twig renders through the `\craft\test\Craft` connector, so HTTP-level route/permission tests are viable (see `tests/functional/PartsKitRouteCest.php`).
 
-`composer.lock` is git-ignored in this repo, so CI keys its Composer cache off `composer.json`. CI (`.github/workflows/`) runs the suite across MySQL and PostgreSQL on every push and PR.
+`composer.lock` is git-ignored in this repo, so CI keys its Composer cache off `composer.json`. CI (`.github/workflows/ci.yml` → `codecept.yml`) runs the suite on PHP 8.2 against both MySQL and PostgreSQL, for pull requests and pushes to `main`.
 
 ## Architecture
 
