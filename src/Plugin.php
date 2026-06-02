@@ -21,6 +21,7 @@ use yii\web\View as BaseView;
  * Craft Parts Kit plugin
  *
  * @method static Plugin getInstance()
+ * @method Settings getSettings()
  * @author Viget <craft@viget.com>
  * @copyright Viget
  * @license MIT
