@@ -16,3 +16,51 @@ jobs:
     uses: ./.github/workflows/codecept.yml
     with:
       php_versions: '["8.2"]'
+
+  # Static analysis needs no database, so it runs as a single job rather than
+  # across the Codeception MySQL/PostgreSQL matrix. PHP/Composer setup mirrors
+  # the non-DB steps of codecept.yml.
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    env:
+      PHP_EXTENSIONS: ctype,curl,dom,iconv,imagick,intl,json,mbstring,openssl,pcre,pdo,reflection,spl,zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: '8.2'
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          key: extension-cache-v1 # change to clear the extension cache.
+      - name: Cache extensions
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          ini-values: memory_limit=1G
+          tools: composer:v2
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      # composer.lock is git-ignored in this repo, so cache keys off composer.json.
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-ansi --no-progress
+      - name: Run ECS (code style)
+        run: composer check-cs
+      - name: Run PHPStan (static analysis)
+        run: composer phpstan

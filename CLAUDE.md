@@ -81,5 +81,4 @@ Everything wires up in `src/Plugin.php` inside `Craft::$app->onInit()`:
 ### Gotchas
 
 - **`Navigation::getNav()` hardcodes the `'parts-kit'` folder name** (`src/services/Navigation.php:25`) instead of reading `settings.directory`. The controllers and URL rules respect a custom `directory`, but the nav scan does not—changing `directory` will break nav generation until this is fixed.
-- **`MockAsset` / `MockAssetBuilder`** (`src/models/`) are a work-in-progress feature for rendering placeholder images (generated as Imagick data URLs), exposed via the `assets` service's `make()` builder. Most `MockAsset` methods throw `NotSupportedException`; only width/height/`getUrl()` are implemented.
 - `root.twig` loads the UI from `https://unpkg.com/@viget/parts-kit@^0/...`—the browsing UI requires network access to the CDN.
