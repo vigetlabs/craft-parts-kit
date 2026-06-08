@@ -13,6 +13,7 @@ use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use craft\web\View;
 use viget\partskit\models\Settings;
+use viget\partskit\services\Assets;
 use viget\partskit\services\Navigation;
 use yii\base\Event;
 
@@ -21,6 +22,8 @@ use yii\base\Event;
  *
  * @method static Plugin getInstance()
  * @method Settings getSettings()
+ * @property-read Navigation $navigation
+ * @property-read Assets $assets
  * @author Viget <craft@viget.com>
  * @copyright Viget
  * @license MIT
@@ -35,9 +38,14 @@ class Plugin extends BasePlugin
 
     public static function config(): array
     {
+        // Convention: every component registered here gets a matching typed
+        // getter AND a `@property-read` line on the class docblock, so it
+        // resolves through both `$plugin->getX()` and the Yii magic property
+        // (the latter is how the `partsKit` Twig variable reaches each service).
         return [
             'components' => [
                 'navigation' => Navigation::class,
+                'assets' => Assets::class,
             ],
         ];
     }
@@ -45,6 +53,11 @@ class Plugin extends BasePlugin
     public function getNavigation(): Navigation
     {
         return $this->get('navigation');
+    }
+
+    public function getAssets(): Assets
+    {
+        return $this->get('assets');
     }
 
     protected function createSettingsModel(): ?Model
