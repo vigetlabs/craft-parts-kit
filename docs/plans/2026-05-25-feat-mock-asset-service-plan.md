@@ -252,17 +252,33 @@ The meat. Feature dependencies (U2) land first, then the builder/element/service
 
 **Dependencies:** none (can land alongside U1).
 
-**Files:** `composer.json` (add `"ext-imagick": "*"` to `require`), `src/resources/fonts/DejaVuSans.ttf` (new binary).
+**Files:** `composer.json` (add `"ext-imagick": "*"` to `require`), `src/resources/fonts/DejaVuSans.ttf` (new binary), `src/resources/fonts/LICENSE` (new — the font's license text, required for redistribution), `.gitattributes` (add `*.ttf binary`).
 
-**Approach:** Add the extension constraint to `require`. Add the TTF under `src/resources/fonts/` — covered by the existing PSR-4-adjacent package contents (verify it is **not** matched by any `export-ignore` rule in `.gitattributes`, since `docs/`, `craft-install/`, `.ddev/` are stripped from the dist package). **No CI workflow change is needed** — `imagick` is already in `PHP_EXTENSIONS` in both `.github/workflows/ci.yml` and `codecept.yml`.
+**Approach:** Add the extension constraint to `require`. Add the TTF under `src/resources/fonts/` — covered by the existing PSR-4-adjacent package contents (verify it is **not** matched by any `export-ignore` rule in `.gitattributes`, since `docs/`, `craft-install/`, `.ddev/` are stripped from the dist package). The repo's `.gitattributes` has a `* text=auto` rule that would LF-normalize (corrupt) a binary font on checkout, so add an explicit `*.ttf binary` rule. **No CI workflow change is needed** — `imagick` is already in `PHP_EXTENSIONS` in both `.github/workflows/ci.yml` and `codecept.yml`.
+
+**Font provenance & license (logged for audit — resolved during U2 execution on 2026-06-08):**
+
+- **Font:** DejaVu Sans, release **2.37** (the latest stable DejaVu release).
+- **Why this font:** it is the de-facto bundled font for Imagick text rendering in the PHP/Craft ecosystem and is the file present at `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf` on most Linux/Docker images — i.e. the exact second link in `MockImageGenerator`'s font fallback chain (bundled → system DejaVu → macOS `Helvetica.ttc` → throw). It has broad Unicode glyph coverage, and — unlike Arial/Helvetica (proprietary, runtime-fallback-only, never shippable) — it is **redistributable**, which is the deciding factor for bundling.
+- **Source (verified to resolve, 2026-06-08):** official `dejavu-fonts` GitHub org release.
+  - Release page: `https://github.com/dejavu-fonts/dejavu-fonts/releases/tag/version_2_37`
+  - Asset downloaded: `https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2`
+  - Tarball SHA-256: `fa9ca4d13871dd122f61258a80d01751d603b4d3ee14095d65453b4e846e17d7`
+  - Extracted `DejaVuSans.ttf`: **757,076 bytes**, SHA-256 `7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954`, `file` reports valid `TrueType Font data`. Shipped **byte-for-byte unmodified**.
+- **License:** Bitstream Vera License + Arev License, with DejaVu's own changes in the public domain. Official text: `https://dejavu-fonts.github.io/License.html` (verified identical to the bundled `src/resources/fonts/LICENSE`). It is a recognized free/libre license (SPDX id `Bitstream-Vera`; ships in Debian/Fedora main).
+- **Compliance analysis for this repo:**
+  - *"notices … shall be included in all copies"* → satisfied by bundling `LICENSE` alongside the `.ttf`.
+  - *"may be sold as part of a larger software package but no copy … may be sold by itself"* → satisfied: the font ships **inside** the plugin, never standalone (and the plugin is MIT/free regardless).
+  - *rename-on-modification clause* → N/A: shipped unmodified.
+  - **License coexistence:** the font does **not** become MIT. The plugin's MIT license governs our code; the Bitstream Vera license governs the font (hence the co-located `LICENSE`). This dual-license-in-one-package arrangement is standard and accepted.
 
 **Patterns to follow:** existing `composer.json` `require` block.
 
 **Execution note:** none — config/asset scaffolding.
 
-**Test scenarios:** `Test expectation: none — dependency/asset declaration.` Verification is `composer validate` succeeds, the font file is present and committed, and `git archive` (per `.github/workflows/package-contents.yml`) still includes `src/resources/fonts/DejaVuSans.ttf`.
+**Test scenarios:** `Test expectation: none — dependency/asset declaration.` Verification is `composer validate` succeeds, the font + LICENSE are present and committed, `git check-attr` confirms the `.ttf` is `export-ignore: unspecified` (ships) and `binary` (not LF-normalized), and `git archive` (per `.github/workflows/package-contents.yml`) still includes `src/resources/fonts/DejaVuSans.ttf`.
 
-**Verification:** `composer validate`; confirm font ships in the package archive; CI install step succeeds with the new constraint.
+**Verification:** `composer validate` (run with `--no-plugins`; a Craft path-repo plugin otherwise errors on relative paths in this repo) reports the manifest valid; the lock-file "out of date" warning is expected and benign (`composer.lock` is git-ignored, CI installs fresh); `git check-attr export-ignore binary` confirms the font ships and is binary; CI install step succeeds with the new constraint.
 
 #### U3. `MockAssetBuilder`
 
@@ -647,7 +663,7 @@ Out of scope for v1 (deferred until a real need surfaces):
 
 - PHP 8.2+ and Craft CMS 5.0+ (already required).
 - PHP `ext-imagick` (newly required — added to `composer.json`; already present in CI `PHP_EXTENSIONS`).
-- Bundled DejaVu Sans TTF (`src/resources/fonts/`).
+- Bundled DejaVu Sans TTF + its `LICENSE` (`src/resources/fonts/`). DejaVu **2.37**, sourced byte-for-byte from the official `dejavu-fonts` GitHub release, Bitstream Vera + Arev license (redistributable inside a larger package). Full provenance, checksums, and license-compliance analysis recorded in **U2** above.
 - Codeception suite (unit + functional through `\craft\test\Craft`), PHPStan level 4, ECS — all already wired and CI-enforced.
 - **Optional:** Imager X Pro for transparent integration (soft dependency via `class_exists`; not in dev deps).
 
@@ -693,6 +709,8 @@ Out of scope for v1 (deferred until a real need surfaces):
 - Craft CMS 5.x docs — Testing: https://craftcms.com/docs/5.x/extend/testing.html
 - Yii 2 `Security::validateData()` / `hashData()`: https://www.yiiframework.com/doc/api/2.0/yii-base-security
 - Imagick `queryFontMetrics`: https://www.php.net/manual/en/imagick.queryfontmetrics.php
+- DejaVu Fonts license (bundled font): https://dejavu-fonts.github.io/License.html
+- DejaVu Fonts 2.37 release (bundled font source): https://github.com/dejavu-fonts/dejavu-fonts/releases/tag/version_2_37
 
 ### Brainstorm decision summary
 

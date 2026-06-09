@@ -19,3 +19,6 @@ tests/ export-ignore
 
 # Auto-detect text files and perform LF normalization
 * text=auto
+
+# Treat bundled fonts as binary so LF normalization can't corrupt them
+*.ttf binary
