@@ -133,6 +133,11 @@ class Plugin extends BasePlugin
     {
         $partsKitDir = $this->getSettings()->directory;
         $event->rules[$partsKitDir] = 'parts-kit/view/root';
+        // Must precede the greedy `<template:.+>` catch-all below, which would
+        // otherwise swallow `/mock/<token>.png` and route it to view/template.
+        // Plain `.png` — Yii's UrlRule escapes literal dots itself, so a
+        // hand-escaped `\.png` would become `\\.png` and never match.
+        $event->rules[$partsKitDir . '/mock/<token:[A-Za-z0-9_-]+>.png'] = 'parts-kit/mock/view';
         $event->rules[$partsKitDir . '/<template:.+>'] = 'parts-kit/view/template';
     }
 }
