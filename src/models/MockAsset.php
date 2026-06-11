@@ -1,0 +1,245 @@
+<?php
+
+namespace viget\partskit\models;
+
+use craft\base\FsInterface;
+use craft\elements\Asset;
+use craft\elements\User;
+use craft\helpers\Image;
+use craft\helpers\ImageTransforms;
+use craft\models\FieldLayout;
+use craft\models\ImageTransform;
+use craft\models\Volume;
+use craft\models\VolumeFolder;
+use yii\base\NotSupportedException;
+use yii\helpers\ArrayHelper;
+
+/**
+ * A placeholder Asset for Parts Kit previews.
+ *
+ * MockAsset extends {@see Asset} but is **not** a Liskov-substitutable Asset: it
+ * has no row in the `assets` table, no Volume, no filesystem, and no field
+ * layout. It implements only the subset of the Asset surface that real-world
+ * Twig component templates actually consume — dimensions, transform-aware
+ * sizing, alt/title, filename/extension/mimeType/kind, and focal point. Every
+ * DB- or volume-touching method throws {@see NotSupportedException}. Callers
+ * that need a full Asset must not receive a MockAsset.
+ *
+ * Construction is normally driven by {@see MockAssetBuilder::one()}, which
+ * passes a config array. Mock-specific keys (`width`, `height`, `label`,
+ * `filename`, `focalPoint`) are extracted into typed properties here; `alt` and
+ * `title` flow through the normal Asset/Element config handling.
+ *
+ * URL emission (`getUrl`/`getImg`/`getSrcset`) lands in U6; this unit covers the
+ * non-URL surface.
+ */
+class MockAsset extends Asset
+{
+    /**
+     * Extension → MIME map for the handful of image formats a mock filename may
+     * carry. Anything else falls back to `image/png`.
+     */
+    private const MIME_TYPES = [
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        'avif' => 'image/avif',
+        'svg' => 'image/svg+xml',
+    ];
+
+    private ?int $_width = null;
+
+    private ?int $_height = null;
+
+    private ?string $_label = null;
+
+    private ?string $_filename = null;
+
+    /**
+     * @var array{x: float, y: float}|null
+     */
+    private ?array $_focalPoint = null;
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    public function __construct($config = [])
+    {
+        $this->_width = ArrayHelper::remove($config, 'width');
+        $this->_height = ArrayHelper::remove($config, 'height');
+        $this->_label = ArrayHelper::remove($config, 'label');
+
+        $filename = ArrayHelper::remove($config, 'filename');
+        if ($filename !== null) {
+            $this->_filename = $filename;
+        }
+
+        /** @var array{x: float, y: float}|null $focalPoint */
+        $focalPoint = ArrayHelper::remove($config, 'focalPoint');
+        $this->_focalPoint = $focalPoint;
+
+        parent::__construct($config);
+    }
+
+    public function init(): void
+    {
+        parent::init();
+
+        // A mock has no DB row or volume; pin a sentinel id and force the image
+        // kind so component code branching on `kind`/`id` behaves predictably.
+        $this->id = -1;
+        $this->kind = Asset::KIND_IMAGE;
+        $this->setScenario(self::SCENARIO_CREATE);
+    }
+
+    /**
+     * The mock's label (used as generated-image text and in the signed URL
+     * payload). Not part of the Asset surface — specific to mocks.
+     */
+    public function getLabel(): ?string
+    {
+        return $this->_label;
+    }
+
+    public function getWidth(array|string|ImageTransform $transform = null): ?int
+    {
+        return $this->_resolveDimensions($transform)[0];
+    }
+
+    public function getHeight(mixed $transform = null): ?int
+    {
+        return $this->_resolveDimensions($transform)[1];
+    }
+
+    public function getFilename(bool $withExtension = true): string
+    {
+        $filename = $this->_filename
+            ?? sprintf('mock-%dx%d.png', $this->_width ?? 0, $this->_height ?? 0);
+
+        if (!$withExtension) {
+            return pathinfo($filename, PATHINFO_FILENAME);
+        }
+
+        return $filename;
+    }
+
+    public function setFilename(string $filename): void
+    {
+        $this->_filename = $filename;
+    }
+
+    public function getExtension(): string
+    {
+        return strtolower(pathinfo($this->getFilename(), PATHINFO_EXTENSION) ?: 'png');
+    }
+
+    public function getMimeType(mixed $transform = null): ?string
+    {
+        return self::MIME_TYPES[$this->getExtension()] ?? 'image/png';
+    }
+
+    public function getHasFocalPoint(): bool
+    {
+        return $this->_focalPoint !== null;
+    }
+
+    public function getFocalPoint(bool $asCss = false): array|string|null
+    {
+        if ($this->_focalPoint === null) {
+            return null;
+        }
+
+        if ($asCss) {
+            return sprintf(
+                '%s%% %s%%',
+                $this->_focalPoint['x'] * 100,
+                $this->_focalPoint['y'] * 100,
+            );
+        }
+
+        return $this->_focalPoint;
+    }
+
+    public function setFocalPoint(array|string|null $value): void
+    {
+        $this->_focalPoint = is_array($value) ? $value : null;
+    }
+
+    // --- Unsupported surface -------------------------------------------------
+    // Methods that would touch the database, a Volume, a filesystem, or the
+    // field layout. A mock has none of these, so they fail loudly rather than
+    // returning misleading empty data.
+
+    public function getVolume(): Volume
+    {
+        throw $this->_unsupported(__METHOD__);
+    }
+
+    public function getFolder(): VolumeFolder
+    {
+        throw $this->_unsupported(__METHOD__);
+    }
+
+    public function getFs(): FsInterface
+    {
+        throw $this->_unsupported(__METHOD__);
+    }
+
+    public function getUploader(): ?User
+    {
+        throw $this->_unsupported(__METHOD__);
+    }
+
+    public function getFieldLayout(): ?FieldLayout
+    {
+        throw $this->_unsupported(__METHOD__);
+    }
+
+    public function getFieldValue(string $fieldHandle): mixed
+    {
+        throw $this->_unsupported(__METHOD__);
+    }
+
+    public function getFieldValues(?array $fieldHandles = null): array
+    {
+        throw $this->_unsupported(__METHOD__);
+    }
+
+    /**
+     * Resolves the mock's dimensions for an optional transform. With no
+     * transform (or no base dimensions) the base size is returned; otherwise the
+     * mode-aware target size is computed exactly as Craft would for a real asset.
+     *
+     * @return array{0: int|null, 1: int|null}
+     */
+    private function _resolveDimensions(mixed $transform): array
+    {
+        if ($this->_width === null || $this->_height === null) {
+            return [$this->_width, $this->_height];
+        }
+
+        $normalized = ImageTransforms::normalizeTransform($transform);
+
+        if ($normalized === null) {
+            return [$this->_width, $this->_height];
+        }
+
+        return Image::targetDimensions(
+            $this->_width,
+            $this->_height,
+            $normalized->width,
+            $normalized->height,
+            $normalized->mode,
+            $normalized->upscale,
+        );
+    }
+
+    private function _unsupported(string $method): NotSupportedException
+    {
+        return new NotSupportedException(
+            $method . ' is not supported on MockAsset; see README.',
+        );
+    }
+}
