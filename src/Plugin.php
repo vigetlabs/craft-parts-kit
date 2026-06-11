@@ -5,10 +5,12 @@ namespace viget\partskit;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
+use craft\events\RegisterCacheOptionsEvent;
 use craft\events\RegisterTemplateRootsEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\UserPermissions;
+use craft\utilities\ClearCaches;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use craft\web\View;
@@ -117,6 +119,20 @@ class Plugin extends BasePlugin
                             'label' => 'View Parts Kit',
                         ],
                     ],
+                ];
+            }
+        );
+
+        // Let `clear-caches/all` (and the CP Clear Caches utility) empty the
+        // lazily-generated mock image cache.
+        Event::on(
+            ClearCaches::class,
+            ClearCaches::EVENT_REGISTER_CACHE_OPTIONS,
+            static function(RegisterCacheOptionsEvent $event) {
+                $event->options[] = [
+                    'key' => 'parts-kit-mocks',
+                    'label' => Craft::t('parts-kit', 'Parts Kit mock images'),
+                    'action' => Craft::getAlias('@storage/runtime/parts-kit-mocks'),
                 ];
             }
         );
