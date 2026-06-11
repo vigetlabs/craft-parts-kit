@@ -51,7 +51,7 @@ class PluginWiringTest extends Unit
 
     private function mocksDir(): string
     {
-        return Craft::getAlias('@storage/runtime/parts-kit-mocks');
+        return Craft::getAlias(Assets::CACHE_DIRECTORY);
     }
 
     /**

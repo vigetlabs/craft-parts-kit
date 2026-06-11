@@ -5,6 +5,7 @@ namespace viget\partskit\tests\unit\models;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use UnitTester;
+use viget\partskit\helpers\MockImageGenerator;
 use viget\partskit\models\MockAsset;
 use viget\partskit\models\MockAssetBuilder;
 
@@ -82,6 +83,38 @@ class MockAssetBuilderTest extends Unit
         $asset = (new MockAssetBuilder())->label($label)->one();
 
         $this->assertSame($label, $asset->getLabel());
+    }
+
+    public function testZeroDimensionThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new MockAssetBuilder())->width(0);
+    }
+
+    public function testNegativeDimensionThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new MockAssetBuilder())->height(-10);
+    }
+
+    public function testDimensionOverMaxThrows(): void
+    {
+        // Guards against an enormous Imagick canvas (resource exhaustion).
+        $this->expectException(InvalidArgumentException::class);
+
+        (new MockAssetBuilder())->width(MockImageGenerator::MAX_DIMENSION + 1);
+    }
+
+    public function testMaxDimensionIsAccepted(): void
+    {
+        $asset = (new MockAssetBuilder())
+            ->width(MockImageGenerator::MAX_DIMENSION)
+            ->height(MockImageGenerator::MAX_DIMENSION)
+            ->one();
+
+        $this->assertSame(MockImageGenerator::MAX_DIMENSION, $asset->getWidth());
     }
 
     public function testOneReturnsFreshInstances(): void

@@ -46,9 +46,20 @@ class MockController extends Controller
         }
 
         $config = Json::decode($payload);
-        $width = (int)$config['w'];
-        $height = (int)$config['h'];
+        $width = (int)($config['w'] ?? 0);
+        $height = (int)($config['h'] ?? 0);
         $label = $config['label'] ?? null;
+
+        // Defense in depth: the builder bounds dimensions at mint time, but a
+        // transform or a directly-built URL could still carry an out-of-range
+        // size. Reject it before it reaches Imagick's canvas allocation.
+        if (
+            $width < 1 || $height < 1
+            || $width > MockImageGenerator::MAX_DIMENSION
+            || $height > MockImageGenerator::MAX_DIMENSION
+        ) {
+            throw new NotFoundHttpException('Mock image not found.');
+        }
 
         $path = Plugin::getInstance()->getAssets()->cachePathForPayload($payload);
 
@@ -67,13 +78,22 @@ class MockController extends Controller
         // sends headers mid-request, which the functional connector can't drive.
         // Serving the bytes as response content keeps the same observable result
         // (image/png body + immutable cache) and stays testable.
+        $bytes = file_get_contents($path);
+
+        // The file vanished between the existence check and the read (e.g. a
+        // concurrent clear-caches). Treat it as a miss rather than serving an
+        // empty-body 200.
+        if ($bytes === false) {
+            throw new NotFoundHttpException('Mock image not found.');
+        }
+
         $response = $this->response;
         $response->format = Response::FORMAT_RAW;
         $response->getHeaders()
             ->set('Content-Type', 'image/png')
             ->set('Content-Disposition', 'inline; filename="mock.png"')
             ->set('Cache-Control', 'public, max-age=31536000, immutable');
-        $response->content = (string)file_get_contents($path);
+        $response->content = $bytes;
 
         return $response;
     }

@@ -9,7 +9,9 @@ use UnitTester;
 use viget\partskit\models\MockAsset;
 use viget\partskit\models\MockAssetBuilder;
 use viget\partskit\Plugin;
+use viget\partskit\services\Assets;
 use yii\base\NotSupportedException;
+use yii\helpers\StringHelper;
 
 /**
  * U4 — MockAsset non-URL surface: construction/init defaults, metadata
@@ -210,10 +212,52 @@ class MockAssetTest extends Unit
         $this->assertCount(2, array_unique($urls), 'Each srcset size yields a distinct URL');
     }
 
+    public function testGetFocalPointAsCss(): void
+    {
+        $asset = new MockAsset([
+            'width' => 800,
+            'height' => 600,
+            'focalPoint' => ['x' => 0.25, 'y' => 0.75],
+        ]);
+
+        $this->assertSame('25% 75%', $asset->getFocalPoint(true));
+    }
+
+    public function testGetUrlAndImgAreNullWhenDimensionsAbsent(): void
+    {
+        // A MockAsset built with no dimensions can't form a URL.
+        $asset = new MockAsset([]);
+
+        $this->assertNull($asset->getUrl());
+        $this->assertNull($asset->getImg());
+    }
+
+    public function testGetSrcsetWidthDescriptorsEncodeRequestedWidths(): void
+    {
+        // The 'w' descriptor branch sets the transform width directly; assert the
+        // emitted URLs encode those widths in their signed payloads.
+        $asset = new MockAsset(['width' => 800, 'height' => 600]);
+
+        $srcset = $asset->getSrcset(['400w', '800w']);
+        $this->assertIsString($srcset);
+
+        $widths = [];
+        foreach (explode(', ', $srcset) as $entry) {
+            $url = explode(' ', $entry)[0];
+            preg_match('#/mock/([A-Za-z0-9_-]+)\.png#', $url, $matches);
+            $payload = Craft::$app->getSecurity()->validateData(
+                StringHelper::base64UrlDecode($matches[1]),
+            );
+            $widths[] = json_decode($payload, true)['w'];
+        }
+
+        $this->assertSame([400, 800], $widths);
+    }
+
     public function testRenderTouchesNoFilesystemAndNoImagick(): void
     {
         // Covers AC11 — emitting URLs/markup creates no files in the mocks dir.
-        $dir = Craft::getAlias('@storage/runtime/parts-kit-mocks');
+        $dir = Craft::getAlias(Assets::CACHE_DIRECTORY);
         $before = is_dir($dir) ? count(glob($dir . '/*') ?: []) : 0;
 
         $asset = new MockAsset(['width' => 800, 'height' => 600, 'label' => 'Hero']);

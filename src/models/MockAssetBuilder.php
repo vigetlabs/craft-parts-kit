@@ -3,6 +3,7 @@
 namespace viget\partskit\models;
 
 use InvalidArgumentException;
+use viget\partskit\helpers\MockImageGenerator;
 
 /**
  * Accumulates mock-asset configuration and constructs a {@see MockAsset} in
@@ -76,16 +77,37 @@ class MockAssetBuilder
 
     public function width(int $width): self
     {
-        $this->_config['width'] = $width;
+        $this->_config['width'] = $this->assertDimension($width, 'width');
 
         return $this;
     }
 
     public function height(int $height): self
     {
-        $this->_config['height'] = $height;
+        $this->_config['height'] = $this->assertDimension($height, 'height');
 
         return $this;
+    }
+
+    /**
+     * Dimensions must be a positive integer no larger than
+     * {@see MockImageGenerator::MAX_DIMENSION}, so a typo (or a hostile template)
+     * can't request an enormous canvas.
+     *
+     * @throws InvalidArgumentException when out of range
+     */
+    private function assertDimension(int $value, string $name): int
+    {
+        if ($value < 1 || $value > MockImageGenerator::MAX_DIMENSION) {
+            throw new InvalidArgumentException(sprintf(
+                'Mock asset %s must be between 1 and %d, got %d.',
+                $name,
+                MockImageGenerator::MAX_DIMENSION,
+                $value,
+            ));
+        }
+
+        return $value;
     }
 
     public function label(string $label): self

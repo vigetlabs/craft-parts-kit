@@ -31,6 +31,14 @@ class MockImageGenerator
      */
     public const MAX_FILES = 5000;
 
+    /**
+     * Hard ceiling per axis. A placeholder never needs to be larger, and the
+     * bound keeps a stray (or hostile) dimension from allocating an enormous
+     * Imagick canvas. The builder rejects out-of-range dimensions up front; the
+     * controller re-checks the decoded token as defense in depth.
+     */
+    public const MAX_DIMENSION = 5000;
+
     private const BACKGROUND_COLOR = '#999999';
 
     private const TEXT_COLOR = '#ffffff';
@@ -89,13 +97,29 @@ class MockImageGenerator
         $image->stripImage();
 
         // Atomic write: a concurrent reader sees either no file or the complete
-        // PNG, never a partial one.
+        // PNG, never a partial one. On any failure, remove the temp file so a
+        // half-written artifact never lingers (it would also be invisible to the
+        // *.png file-count cap).
         $tempPath = $path . '.tmp.' . bin2hex(random_bytes(8));
-        $image->writeImage($tempPath);
-        rename($tempPath, $path);
 
-        $draw->clear();
-        $image->clear();
+        try {
+            $image->writeImage($tempPath);
+
+            if (!rename($tempPath, $path)) {
+                throw new RuntimeException(
+                    'Failed to move the generated mock image into place: ' . basename($path),
+                );
+            }
+        } catch (\Throwable $e) {
+            if (is_file($tempPath)) {
+                @unlink($tempPath);
+            }
+
+            throw $e;
+        } finally {
+            $draw->clear();
+            $image->clear();
+        }
     }
 
     /**

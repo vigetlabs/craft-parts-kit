@@ -35,9 +35,6 @@ use yii\helpers\ArrayHelper;
  * passes a config array. Mock-specific keys (`width`, `height`, `label`,
  * `filename`, `focalPoint`) are extracted into typed properties here; `alt` and
  * `title` flow through the normal Asset/Element config handling.
- *
- * URL emission (`getUrl`/`getImg`/`getSrcset`) lands in U6; this unit covers the
- * non-URL surface.
  */
 class MockAsset extends Asset
 {

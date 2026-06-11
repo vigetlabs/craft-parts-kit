@@ -21,8 +21,9 @@ use yii\helpers\StringHelper;
  * tamper-proof: {@see \viget\partskit\controllers\MockController} validates it
  * before serving and rejects any mutation with a 404. Because the validated
  * config travels in the URL, the controller can generate the PNG lazily on the
- * first request — no sidecar files, no DB. The on-disk cache filename is
- * `sha1($payload)`, computed by the controller (not here).
+ * first request — no sidecar files, no DB. This service also owns the on-disk
+ * cache location: {@see cachePathForPayload()} derives `sha1($payload).png`
+ * under {@see CACHE_DIRECTORY}.
  */
 class Assets extends Component
 {

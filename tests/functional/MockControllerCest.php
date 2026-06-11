@@ -6,6 +6,7 @@ use Craft;
 use craft\elements\User;
 use craft\helpers\FileHelper;
 use FunctionalTester;
+use viget\partskit\helpers\MockImageGenerator;
 use viget\partskit\services\Assets;
 
 /**
@@ -24,7 +25,12 @@ use viget\partskit\services\Assets;
  */
 class MockControllerCest
 {
-    private const MOCKS_DIR = '@storage/runtime/parts-kit-mocks';
+    public function _before(FunctionalTester $I): void
+    {
+        // Each test starts from an empty cache so on-disk assertions don't
+        // depend on execution order.
+        $this->clearMocksDir();
+    }
 
     public function _after(FunctionalTester $I): void
     {
@@ -65,7 +71,7 @@ class MockControllerCest
 
     private function mocksDir(): string
     {
-        return Craft::getAlias(self::MOCKS_DIR);
+        return Craft::getAlias(Assets::CACHE_DIRECTORY);
     }
 
     private function clearMocksDir(): void
@@ -90,7 +96,6 @@ class MockControllerCest
         // Covers AC2 — 200 with image/png + immutable cache, and the served file
         // is exactly 800x600.
         $this->requireGate(false);
-        $this->clearMocksDir();
 
         $I->amOnPage($this->mockPath(800, 600, null));
         $I->seeResponseCodeIs(200);
@@ -113,7 +118,6 @@ class MockControllerCest
     {
         // Covers AC12 — first request generates the file, second hits the cache.
         $this->requireGate(false);
-        $this->clearMocksDir();
 
         $path = $this->mockPath(640, 480, 'Cold');
 
@@ -131,6 +135,33 @@ class MockControllerCest
         $this->requireGate(false);
 
         $I->amOnPage($this->tamper($this->mockPath(800, 600, null)));
+        $I->seeResponseCodeIs(404);
+    }
+
+    public function outOfRangeDimensionsReturn404(FunctionalTester $I): void
+    {
+        // A validly-signed token whose dimensions exceed the canvas cap is
+        // rejected before it can allocate a huge Imagick image.
+        $this->requireGate(false);
+
+        $oversize = MockImageGenerator::MAX_DIMENSION + 1;
+        $I->amOnPage($this->mockPath($oversize, $oversize, null));
+        $I->seeResponseCodeIs(404);
+    }
+
+    public function fileCountCapReturns404(FunctionalTester $I): void
+    {
+        // When the cache is at the file-count cap, generation aborts and the
+        // controller serves a 404 rather than an error.
+        $this->requireGate(false);
+
+        $dir = $this->mocksDir();
+        FileHelper::createDirectory($dir);
+        for ($i = 0; $i < MockImageGenerator::MAX_FILES; $i++) {
+            touch($dir . '/cap-stub-' . $i . '.png');
+        }
+
+        $I->amOnPage($this->mockPath(800, 600, 'Capped'));
         $I->seeResponseCodeIs(404);
     }
 
