@@ -212,19 +212,19 @@ Units carry stable U-IDs and are grouped into the original four phases. Phases 1
 
 ### Implementation Status
 
-> Authoritative progress lives in git/PRs; this table is a convenience snapshot, last updated **2026-06-09**.
+> Authoritative progress lives in git/PRs; this table is a convenience snapshot, last updated **2026-06-11**.
 
 | Unit | Status | Branch / PR | Notes |
 |---|---|---|---|
 | U1 | ✅ Done | `jp/15-asset-mock-feature` → [#24](https://github.com/vigetlabs/craft-parts-kit/pull/24) (draft) | Commit `109fccc`. Tests + PHPStan + ECS green. |
 | U2 | ✅ Done | `jp/15-asset-mock-deps` → [#25](https://github.com/vigetlabs/craft-parts-kit/pull/25) (draft, stacked on #24) | Commit `3e3700b`. Font provenance/license logged in U2. |
-| U3 | ⬜ Not started | — | `MockAssetBuilder` (next up). |
-| U4 | ⬜ Not started | — | `MockAsset` surface + dimensions + guards. |
-| U5 | ⬜ Not started | — | `Assets::make()` + `signedUrlForImage()` + Imagick check. |
-| U6 | ⬜ Not started | — | `MockAsset` transform-emitting methods. |
-| U7 | ⬜ Not started | — | `MockImageGenerator` helper. |
-| U8 | ⬜ Not started | — | `MockController` + URL rule. |
-| U9 | ⬜ Not started | — | ClearCaches integration. |
+| U3 | ✅ Done | `jp/15-asset-mock-core` (Phase 2 PR pending) | Landed with U4 (commit `9d90e8d`); dimension bounds added in review. |
+| U4 | ✅ Done | `jp/15-asset-mock-core` | Commit `9d90e8d`. Surface + dimensions + `NotSupportedException` guards. |
+| U5 | ✅ Done | `jp/15-asset-mock-core` | Commit `a6a89b1`. `make()` + `signedUrlForImage()` + Imagick check. |
+| U6 | ✅ Done | `jp/15-asset-mock-core` | Commit `0acad7e`. Transform-emitting URL methods. |
+| U7 | ✅ Done | `jp/15-asset-mock-core` | Commit `61e1f56`. Generator + atomic write + 5,000-file cap. |
+| U8 | ✅ Done | `jp/15-asset-mock-core` | Commit `e4e64a6`. Controller + signed URL rule + gate-before-validation. |
+| U9 | ✅ Done | `jp/15-asset-mock-core` | Commit `f2cc3b8`. ClearCaches integration. |
 | U10 | ⬜ Not started | — | `MockTransformedImage` model. |
 | U11 | ⬜ Not started | — | `ImagerXIntegration` service + registration. |
 | U12 | ⬜ Not started | — | README, CHANGELOG, consumer audit, final checks. |
