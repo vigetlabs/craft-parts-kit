@@ -132,7 +132,7 @@ class Plugin extends BasePlugin
                 $event->options[] = [
                     'key' => 'parts-kit-mocks',
                     'label' => Craft::t('parts-kit', 'Parts Kit mock images'),
-                    'action' => Craft::getAlias('@storage/runtime/parts-kit-mocks'),
+                    'action' => Craft::getAlias(Assets::CACHE_DIRECTORY),
                 ];
             }
         );

@@ -6,6 +6,7 @@ use craft\base\FsInterface;
 use craft\elements\Asset;
 use craft\elements\User;
 use craft\helpers\Assets as AssetsHelper;
+use craft\helpers\FileHelper;
 use craft\helpers\Html;
 use craft\helpers\Image;
 use craft\helpers\ImageTransforms;
@@ -40,20 +41,6 @@ use yii\helpers\ArrayHelper;
  */
 class MockAsset extends Asset
 {
-    /**
-     * Extension → MIME map for the handful of image formats a mock filename may
-     * carry. Anything else falls back to `image/png`.
-     */
-    private const MIME_TYPES = [
-        'png' => 'image/png',
-        'jpg' => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'gif' => 'image/gif',
-        'webp' => 'image/webp',
-        'avif' => 'image/avif',
-        'svg' => 'image/svg+xml',
-    ];
-
     private ?int $_width = null;
 
     private ?int $_height = null;
@@ -83,11 +70,7 @@ class MockAsset extends Asset
         $this->_width = ArrayHelper::remove($config, 'width');
         $this->_height = ArrayHelper::remove($config, 'height');
         $this->_label = ArrayHelper::remove($config, 'label');
-
-        $filename = ArrayHelper::remove($config, 'filename');
-        if ($filename !== null) {
-            $this->_filename = $filename;
-        }
+        $this->_filename = ArrayHelper::remove($config, 'filename');
 
         /** @var array{x: float, y: float}|null $focalPoint */
         $focalPoint = ArrayHelper::remove($config, 'focalPoint');
@@ -148,10 +131,13 @@ class MockAsset extends Asset
             return null;
         }
 
+        // Resolve dimensions once for the width/height attributes.
+        [$width, $height] = $this->_resolveDimensions($transform);
+
         $img = Html::tag('img', '', [
             'src' => $url,
-            'width' => $this->getWidth($transform),
-            'height' => $this->getHeight($transform),
+            'width' => $width,
+            'height' => $height,
             'srcset' => $sizes ? $this->getSrcset($sizes, $transform) : false,
             'alt' => $this->alt,
         ]);
@@ -159,22 +145,9 @@ class MockAsset extends Asset
         return Template::raw($img);
     }
 
-    public function getSrcset(array $sizes, mixed $transform = null): string|false
-    {
-        $urls = array_filter($this->getUrlsBySize($sizes, $transform));
-
-        if (empty($urls)) {
-            return false;
-        }
-
-        $srcset = [];
-
-        foreach ($urls as $size => $url) {
-            $srcset[] = $size === '1x' ? $url : "$url $size";
-        }
-
-        return implode(', ', $srcset);
-    }
+    // getSrcset() is inherited from Asset: its body is just
+    // `array_filter($this->getUrlsBySize(...))` formatted into a srcset string,
+    // and getUrlsBySize() is overridden below to emit signed mock URLs.
 
     /**
      * @param string[] $sizes
@@ -260,7 +233,7 @@ class MockAsset extends Asset
 
     public function getMimeType(mixed $transform = null): ?string
     {
-        return self::MIME_TYPES[$this->getExtension()] ?? 'image/png';
+        return FileHelper::getMimeTypeByExtension($this->getFilename()) ?? 'image/png';
     }
 
     public function getHasFocalPoint(): bool

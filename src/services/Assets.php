@@ -27,6 +27,13 @@ use yii\helpers\StringHelper;
 class Assets extends Component
 {
     /**
+     * Alias of the directory holding the lazily-generated mock PNGs. Single
+     * source of truth: the controller (cache path), the generator (via that
+     * path), and the clear-caches registration all derive from here.
+     */
+    public const CACHE_DIRECTORY = '@storage/runtime/parts-kit-mocks';
+
+    /**
      * Returns a builder for a mock asset, applying any provided config. Runs the
      * Imagick boot guard so misconfigured environments fail with a clear message
      * at the point of use rather than deep inside generation.
@@ -64,6 +71,24 @@ class Assets extends Component
         $directory = Plugin::getInstance()->getSettings()->directory;
 
         return UrlHelper::siteUrl($directory . '/mock/' . $token . '.png');
+    }
+
+    /**
+     * The resolved (absolute) mock-image cache directory.
+     */
+    public function cacheDirectory(): string
+    {
+        return Craft::getAlias(self::CACHE_DIRECTORY);
+    }
+
+    /**
+     * The on-disk cache path for a validated signed payload. The filename is the
+     * SHA-1 of the payload — never raw input — so there is no path-traversal
+     * surface and identical configs share one file.
+     */
+    public function cachePathForPayload(string $payload): string
+    {
+        return $this->cacheDirectory() . '/' . sha1($payload) . '.png';
     }
 
     private function _ensureImagickAvailable(): void

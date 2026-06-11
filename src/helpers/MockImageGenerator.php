@@ -43,17 +43,6 @@ class MockImageGenerator
     private const TEXT_FIT_RATIO = 0.9;
 
     /**
-     * Font fallback chain: bundled DejaVu Sans, then the common Linux/Docker
-     * system path, then macOS Helvetica for local dev. Throws if none resolve.
-     *
-     * @var list<string>
-     */
-    private const FONT_CANDIDATES = [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/System/Library/Fonts/Helvetica.ttc',
-    ];
-
-    /**
      * Generates a PNG of exactly {@param $width}×{@param $height} at the given
      * path, with a centered, scaled-to-fit label (defaulting to the dimensions).
      * The write is atomic. No-ops (with a warning) if the directory already
@@ -141,7 +130,15 @@ class MockImageGenerator
 
     private static function resolveFont(): string
     {
-        foreach (self::fontCandidates() as $candidate) {
+        // Bundled DejaVu Sans first, then the common Linux/Docker system path,
+        // then macOS Helvetica for local dev.
+        $candidates = [
+            dirname(__DIR__) . '/resources/fonts/DejaVuSans.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/System/Library/Fonts/Helvetica.ttc',
+        ];
+
+        foreach ($candidates as $candidate) {
             if (is_file($candidate)) {
                 return $candidate;
             }
@@ -151,16 +148,5 @@ class MockImageGenerator
             'Parts Kit could not find a usable font for mock image generation. '
             . 'The bundled DejaVuSans.ttf is missing and no system fallback was found. See README.',
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function fontCandidates(): array
-    {
-        return [
-            dirname(__DIR__) . '/resources/fonts/DejaVuSans.ttf',
-            ...self::FONT_CANDIDATES,
-        ];
     }
 }

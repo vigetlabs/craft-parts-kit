@@ -50,9 +50,7 @@ class MockController extends Controller
         $height = (int)$config['h'];
         $label = $config['label'] ?? null;
 
-        // The on-disk name is the hash of the validated payload — never raw
-        // input — so there is no path-traversal surface.
-        $path = Craft::getAlias('@storage/runtime/parts-kit-mocks/') . sha1($payload) . '.png';
+        $path = Plugin::getInstance()->getAssets()->cachePathForPayload($payload);
 
         if (!file_exists($path)) {
             MockImageGenerator::generate($path, $width, $height, $label);
