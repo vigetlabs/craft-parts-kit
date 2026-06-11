@@ -5,12 +5,17 @@ namespace viget\partskit\models;
 use craft\base\FsInterface;
 use craft\elements\Asset;
 use craft\elements\User;
+use craft\helpers\Assets as AssetsHelper;
+use craft\helpers\Html;
 use craft\helpers\Image;
 use craft\helpers\ImageTransforms;
+use craft\helpers\Template;
 use craft\models\FieldLayout;
 use craft\models\ImageTransform;
 use craft\models\Volume;
 use craft\models\VolumeFolder;
+use Twig\Markup;
+use viget\partskit\Plugin;
 use yii\base\NotSupportedException;
 use yii\helpers\ArrayHelper;
 
@@ -63,6 +68,14 @@ class MockAsset extends Asset
     private ?array $_focalPoint = null;
 
     /**
+     * Memoized signed URLs, keyed by resolved `{width}x{height}`. Rendering the
+     * same image at the same size never re-signs.
+     *
+     * @var array<string, string>
+     */
+    private array $_urlCache = [];
+
+    /**
      * @param array<string, mixed> $config
      */
     public function __construct($config = [])
@@ -101,6 +114,116 @@ class MockAsset extends Asset
     public function getLabel(): ?string
     {
         return $this->_label;
+    }
+
+    /**
+     * Emits a signed URL for the mock at the (optionally transformed) size.
+     * This is render-time only: it performs zero Imagick and zero filesystem
+     * work — the PNG is generated lazily by the controller on first request.
+     */
+    public function getUrl(mixed $transform = null, ?bool $immediately = null): ?string
+    {
+        [$width, $height] = $this->_resolveDimensions($transform);
+
+        if ($width === null || $height === null) {
+            return null;
+        }
+
+        $key = $width . 'x' . $height;
+
+        return $this->_urlCache[$key] ??= Plugin::getInstance()
+            ->getAssets()
+            ->signedUrlForImage($width, $height, $this->_label);
+    }
+
+    public function getImg(mixed $transform = null, ?array $sizes = null): ?Markup
+    {
+        if ($this->kind !== self::KIND_IMAGE) {
+            return null;
+        }
+
+        $url = $this->getUrl($transform);
+
+        if ($url === null) {
+            return null;
+        }
+
+        $img = Html::tag('img', '', [
+            'src' => $url,
+            'width' => $this->getWidth($transform),
+            'height' => $this->getHeight($transform),
+            'srcset' => $sizes ? $this->getSrcset($sizes, $transform) : false,
+            'alt' => $this->alt,
+        ]);
+
+        return Template::raw($img);
+    }
+
+    public function getSrcset(array $sizes, mixed $transform = null): string|false
+    {
+        $urls = array_filter($this->getUrlsBySize($sizes, $transform));
+
+        if (empty($urls)) {
+            return false;
+        }
+
+        $srcset = [];
+
+        foreach ($urls as $size => $url) {
+            $srcset[] = $size === '1x' ? $url : "$url $size";
+        }
+
+        return implode(', ', $srcset);
+    }
+
+    /**
+     * @param string[] $sizes
+     * @return array<string, string|null>
+     */
+    public function getUrlsBySize(array $sizes, mixed $transform = null): array
+    {
+        if ($this->kind !== self::KIND_IMAGE) {
+            return [];
+        }
+
+        $normalized = ImageTransforms::normalizeTransform($transform);
+
+        [$currentWidth, $currentHeight] = $this->_resolveDimensions($normalized);
+
+        if (!$currentWidth || !$currentHeight) {
+            return [];
+        }
+
+        $urls = [];
+
+        foreach ($sizes as $size) {
+            if ($size === '1x') {
+                $urls[$size] = $this->getUrl($normalized);
+                continue;
+            }
+
+            [$value, $unit] = AssetsHelper::parseSrcsetSize($size);
+
+            $sizeTransform = $normalized ? $normalized->toArray() : [];
+            unset($sizeTransform['name'], $sizeTransform['handle']);
+
+            if ($unit === 'w') {
+                $sizeTransform['width'] = (int)$value;
+            } else {
+                $sizeTransform['width'] = (int)ceil($currentWidth * $value);
+            }
+
+            // Only carry a height if the base transform set one.
+            if ($normalized && $normalized->height) {
+                $sizeTransform['height'] = $unit === 'w'
+                    ? (int)ceil($currentHeight * $sizeTransform['width'] / $currentWidth)
+                    : (int)ceil($currentHeight * $value);
+            }
+
+            $urls["$value$unit"] = $this->getUrl($sizeTransform);
+        }
+
+        return $urls;
     }
 
     public function getWidth(array|string|ImageTransform $transform = null): ?int

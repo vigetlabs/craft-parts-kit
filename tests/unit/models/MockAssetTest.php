@@ -3,9 +3,12 @@
 namespace viget\partskit\tests\unit\models;
 
 use Codeception\Test\Unit;
+use Craft;
 use craft\elements\Asset;
 use UnitTester;
 use viget\partskit\models\MockAsset;
+use viget\partskit\models\MockAssetBuilder;
+use viget\partskit\Plugin;
 use yii\base\NotSupportedException;
 
 /**
@@ -134,5 +137,91 @@ class MockAssetTest extends Unit
         $this->expectExceptionMessageMatches('/getFieldValue/');
 
         $asset->getFieldValue('caption');
+    }
+
+    // --- U6: transform-emitting URL methods ----------------------------------
+
+    public function testGetUrlEmitsSignedUrl(): void
+    {
+        // Covers AC1.
+        $asset = new MockAsset(['width' => 800, 'height' => 600]);
+
+        $this->assertMatchesRegularExpression(
+            '#/parts-kit/mock/[A-Za-z0-9_-]+\.png$#',
+            (string)$asset->getUrl(),
+        );
+    }
+
+    public function testGetUrlIsMemoized(): void
+    {
+        $asset = new MockAsset(['width' => 800, 'height' => 600]);
+
+        $this->assertSame($asset->getUrl(), $asset->getUrl());
+    }
+
+    public function testGetUrlWithTransformResolvesDimensions(): void
+    {
+        // getUrl with a fit-400 transform on a 1600x900 mock encodes 400x225.
+        $asset = new MockAsset(['width' => 1600, 'height' => 900, 'label' => 'Hero']);
+
+        $expected = Plugin::getInstance()->getAssets()->signedUrlForImage(400, 225, 'Hero');
+
+        $this->assertSame($expected, $asset->getUrl(['width' => 400, 'mode' => 'fit']));
+    }
+
+    public function testGetImgMarkup(): void
+    {
+        // Covers AC4.
+        $asset = (new MockAssetBuilder())
+            ->width(800)
+            ->height(600)
+            ->alt('Hero')
+            ->one();
+
+        $img = (string)$asset->getImg();
+
+        $this->assertStringContainsString('<img', $img);
+        $this->assertStringContainsString('width="800"', $img);
+        $this->assertStringContainsString('height="600"', $img);
+        $this->assertStringContainsString('alt="Hero"', $img);
+        $this->assertMatchesRegularExpression('#src="[^"]*/parts-kit/mock/[A-Za-z0-9_-]+\.png"#', $img);
+    }
+
+    public function testGetImgReturnsNullForNonImageKind(): void
+    {
+        $asset = new MockAsset(['width' => 800, 'height' => 600]);
+        $asset->kind = 'document';
+
+        $this->assertNull($asset->getImg());
+    }
+
+    public function testGetSrcsetReturnsNUrls(): void
+    {
+        // Covers AC12 — N sizes emit N distinct signed URLs.
+        $asset = new MockAsset(['width' => 800, 'height' => 600]);
+
+        $srcset = $asset->getSrcset(['1x', '2x']);
+        $this->assertIsString($srcset);
+
+        $entries = explode(', ', $srcset);
+        $this->assertCount(2, $entries);
+
+        $urls = array_map(fn(string $entry) => explode(' ', $entry)[0], $entries);
+        $this->assertCount(2, array_unique($urls), 'Each srcset size yields a distinct URL');
+    }
+
+    public function testRenderTouchesNoFilesystemAndNoImagick(): void
+    {
+        // Covers AC11 — emitting URLs/markup creates no files in the mocks dir.
+        $dir = Craft::getAlias('@storage/runtime/parts-kit-mocks');
+        $before = is_dir($dir) ? count(glob($dir . '/*') ?: []) : 0;
+
+        $asset = new MockAsset(['width' => 800, 'height' => 600, 'label' => 'Hero']);
+        $asset->getUrl();
+        $asset->getImg();
+        $asset->getSrcset(['1x', '2x']);
+
+        $after = is_dir($dir) ? count(glob($dir . '/*') ?: []) : 0;
+        $this->assertSame($before, $after, 'Rendering must not generate any files');
     }
 }
