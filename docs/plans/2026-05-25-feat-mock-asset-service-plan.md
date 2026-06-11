@@ -210,11 +210,32 @@ Every feature-bearing unit below carries `Execution note: test-first` — write 
 
 Units carry stable U-IDs and are grouped into the original four phases. Phases 1–4 map to PRs in order; within a phase, follow the dependency order.
 
+### Implementation Status
+
+> Authoritative progress lives in git/PRs; this table is a convenience snapshot, last updated **2026-06-09**.
+
+| Unit | Status | Branch / PR | Notes |
+|---|---|---|---|
+| U1 | ✅ Done | `jp/15-asset-mock-feature` → [#24](https://github.com/vigetlabs/craft-parts-kit/pull/24) (draft) | Commit `109fccc`. Tests + PHPStan + ECS green. |
+| U2 | ✅ Done | `jp/15-asset-mock-deps` → [#25](https://github.com/vigetlabs/craft-parts-kit/pull/25) (draft, stacked on #24) | Commit `3e3700b`. Font provenance/license logged in U2. |
+| U3 | ⬜ Not started | — | `MockAssetBuilder` (next up). |
+| U4 | ⬜ Not started | — | `MockAsset` surface + dimensions + guards. |
+| U5 | ⬜ Not started | — | `Assets::make()` + `signedUrlForImage()` + Imagick check. |
+| U6 | ⬜ Not started | — | `MockAsset` transform-emitting methods. |
+| U7 | ⬜ Not started | — | `MockImageGenerator` helper. |
+| U8 | ⬜ Not started | — | `MockController` + URL rule. |
+| U9 | ⬜ Not started | — | ClearCaches integration. |
+| U10 | ⬜ Not started | — | `MockTransformedImage` model. |
+| U11 | ⬜ Not started | — | `ImagerXIntegration` service + registration. |
+| U12 | ⬜ Not started | — | README, CHANGELOG, consumer audit, final checks. |
+
 ### Phase 1 — Foundation scaffolding (separate PR)
 
 A small, mergeable-on-its-own PR establishing the `Assets` service seam and the component-getter convention. Reframed from the original "cleanup" framing because **no WIP code exists to fix** — this is greenfield scaffolding that lets Phase 2 build on a registered service.
 
 #### U1. `Assets` service skeleton + Plugin wiring
+
+**✅ Status: Done** (commit `109fccc`, PR [#24](https://github.com/vigetlabs/craft-parts-kit/pull/24)) — all test scenarios implemented and green; PHPStan + ECS clean. `MockAssetBuilder` landed here as a minimal stub (anticipated below) so `make()` has a real return type; U3 fleshes it out.
 
 **Goal:** A registered `assets` component reachable as `Plugin::getInstance()->getAssets()` and as the `partsKit.assets` Twig accessor, plus the typed-getter/`@property-read` convention applied to every component.
 
@@ -245,6 +266,8 @@ A small, mergeable-on-its-own PR establishing the `Assets` service seam and the 
 The meat. Feature dependencies (U2) land first, then the builder/element/service/generator/controller in dependency order.
 
 #### U2. Feature dependencies — `ext-imagick`, bundled font
+
+**✅ Status: Done** (commit `3e3700b`, PR [#25](https://github.com/vigetlabs/craft-parts-kit/pull/25), stacked on #24) — `ext-imagick` required, DejaVu Sans 2.37 + `LICENSE` bundled, `*.ttf binary` added to `.gitattributes`. Full font provenance, checksums, and license-compliance analysis recorded below.
 
 **Goal:** Declare the Imagick requirement and ship the fallback font so generation works on slim images.
 
