@@ -99,11 +99,24 @@ class MockAssetTest extends Unit
         $this->assertSame('image/webp', $asset->getMimeType());
     }
 
-    public function testFocalPointDefaultsToNullAndHasFocalPointFalse(): void
+    public function testFocalPointDefaultsToCenterAndHasFocalPointFalse(): void
     {
+        // Mirrors Craft: an image Asset with no focal point set reports
+        // hasFocalPoint=false but getFocalPoint() returns the center default,
+        // never null — so object-position CSS behaves identically for mocks.
         $asset = new MockAsset(['width' => 800, 'height' => 600]);
 
         $this->assertFalse($asset->getHasFocalPoint());
+        $this->assertSame(['x' => 0.5, 'y' => 0.5], $asset->getFocalPoint());
+        $this->assertSame('50% 50%', $asset->getFocalPoint(true));
+    }
+
+    public function testFocalPointIsNullForNonImageKind(): void
+    {
+        // Craft parity: non-visual kinds have no focal point at all.
+        $asset = new MockAsset(['width' => 800, 'height' => 600]);
+        $asset->kind = 'document';
+
         $this->assertNull($asset->getFocalPoint());
     }
 

@@ -41,6 +41,14 @@ brainstorm: docs/brainstorms/2026-05-25-mock-asset-brainstorm.md
 >    `RuntimeException` at first use, and the mock route is only reachable via
 >    URLs minted by `make()`, so an Imagick-less site that never uses mocks never
 >    hits a failure path. CI still exercises real Imagick (`PHP_EXTENSIONS`).
+> 2. **Focal point defaults to Craft's center, not null** (supersedes the
+>    brainstorm decision). A real image Asset never returns null from
+>    `getFocalPoint()` — Craft defaults to `['x' => 0.5, 'y' => 0.5]`
+>    (`Asset.php:2690`) — so a null-returning mock silently breaks
+>    `object-position: {{ asset.getFocalPoint(true) }}` parity and crashes
+>    `asset.getFocalPoint().x`. `MockAsset::getFocalPoint()` now mirrors Craft
+>    exactly (null only for non-visual kinds; center default otherwise);
+>    `getHasFocalPoint()` still reports false when unset, matching Craft.
 
 ## Enhancement Summary
 
@@ -326,7 +334,7 @@ The meat. Feature dependencies (U2) land first, then the builder/element/service
 
 **Files:** `src/models/MockAssetBuilder.php` (new), `tests/unit/models/MockAssetBuilderTest.php` (new).
 
-**Approach:** `private array $_config = []`. `configure(array): self` merges and throws `InvalidArgumentException` on unknown keys. Fluent setters `width/height/label/alt/title/filename/focalPoint` each write to `_config` and return `$this`. `label()` trims and rejects > 200 chars. `one(): MockAsset` applies defaults (width 800, height 600 if unset; focalPoint null) and returns `new MockAsset($this->_config)`. The builder does **not** touch a `MockAsset` until `one()`.
+**Approach:** `private array $_config = []`. `configure(array): self` merges and throws `InvalidArgumentException` on unknown keys. Fluent setters `width/height/label/alt/title/filename/focalPoint` each write to `_config` and return `$this`. `label()` trims and rejects > 200 chars. `one(): MockAsset` applies defaults (width 800, height 600 if unset; focalPoint left unset — `MockAsset::getFocalPoint()` supplies Craft's center default) and returns `new MockAsset($this->_config)`. The builder does **not** touch a `MockAsset` until `one()`.
 
 **Patterns to follow:** Yii `new X($config)` idiom; existing model conventions in `src/models/`.
 
@@ -369,7 +377,7 @@ The meat. Feature dependencies (U2) land first, then the builder/element/service
 - `testGetWidthStretchVsFitDiffer` — same inputs, `stretch` vs `fit` produce the documented different dimensions (mode-awareness).
 - `testDefaultFilenameDerivedFromDimensions` — default filename is `mock-800x600.png`; extension `png`, mimeType `image/png`.
 - `testSetFilenameDerivesExtensionAndMime` — `setFilename('hero.jpg')` → extension `jpg`, mimeType `image/jpeg`.
-- `testFocalPointDefaultsToNullAndHasFocalPointFalse` — `getHasFocalPoint()` false, `getFocalPoint()` null by default.
+- `testFocalPointDefaultsToCenterAndHasFocalPointFalse` — `getHasFocalPoint()` false, `getFocalPoint()` returns Craft's center default `{x: 0.5, y: 0.5}` (never null for an image kind). *(Revised 2026-07-09 — was null.)*
 - `testUnsupportedMethodThrowsWithMethodNameAndReadme` — Covers AC10. `getVolume()`/`getFieldValue('caption')` throw `NotSupportedException`; message contains the method name AND `README`.
 
 **Verification:** `composer test-unit` green; static analysis clean (PHPStan must accept the typed-union override).
@@ -752,7 +760,7 @@ Out of scope for v1 (deferred until a real need surfaces):
 
 - Default dimensions: **800×600**
 - Filename default: **auto `mock-{w}x{h}.png`; setting filename derives ext/mimeType**
-- Focal point default: **null; `hasFocalPoint()` false**
+- Focal point default: ~~null; `hasFocalPoint()` false~~ **revised 2026-07-09: Craft's center default `{x: 0.5, y: 0.5}`, mirroring `Asset::getFocalPoint()`; `hasFocalPoint()` still false when unset** (a real image Asset never returns null, so neither can the mock)
 - Asset kinds in v1: **image-only**
 - Hash inputs: **width, height, label** (keyed, HMAC-signed; no version prefix; rely on clear-caches)
 - Imager X Lite UX: **documented manual workaround only**

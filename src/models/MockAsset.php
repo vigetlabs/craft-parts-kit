@@ -238,21 +238,27 @@ class MockAsset extends Asset
         return $this->_focalPoint !== null;
     }
 
+    /**
+     * Mirrors {@see Asset::getFocalPoint()} exactly: null for non-visual kinds,
+     * otherwise the set focal point or Craft's center default (`0.5/0.5`) — a
+     * real image Asset never returns null here, so a mock must not either
+     * (`object-position: {{ asset.getFocalPoint(true) }}` has to behave the
+     * same for both). `getHasFocalPoint()` still reports false when unset,
+     * matching Craft.
+     */
     public function getFocalPoint(bool $asCss = false): array|string|null
     {
-        if ($this->_focalPoint === null) {
+        if (!in_array($this->kind, [self::KIND_IMAGE, self::KIND_VIDEO], true)) {
             return null;
         }
 
+        $focal = $this->_focalPoint ?? ['x' => 0.5, 'y' => 0.5];
+
         if ($asCss) {
-            return sprintf(
-                '%s%% %s%%',
-                $this->_focalPoint['x'] * 100,
-                $this->_focalPoint['y'] * 100,
-            );
+            return sprintf('%s%% %s%%', $focal['x'] * 100, $focal['y'] * 100);
         }
 
-        return $this->_focalPoint;
+        return $focal;
     }
 
     public function setFocalPoint(array|string|null $value): void
