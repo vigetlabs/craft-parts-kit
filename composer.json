@@ -7,8 +7,10 @@
   },
   "require": {
     "php": ">=8.2",
-    "ext-imagick": "*",
     "craftcms/cms": "^5.0.0"
+  },
+  "suggest": {
+    "ext-imagick": "Required to generate mock asset images (partsKit.assets.make()); the rest of the plugin works without it"
   },
   "require-dev": {
     "codeception/codeception": "^5.0.11",
