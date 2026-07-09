@@ -1,0 +1,64 @@
+{#
+  Demo part — Mock Assets.
+
+  Shows the two builder styles and the supported Asset surface rendering real,
+  lazily-generated placeholder PNGs. Dev-harness only (craft-install is
+  export-ignored from the distributed package).
+#}
+{% set hero = craft.partsKit.assets.make({
+  width: 1600,
+  height: 900,
+  label: 'Hero',
+  alt: 'A placeholder hero image',
+}).one %}
+
+{% set thumb = craft.partsKit.assets.make.width(400).height(400).label('Thumb').one %}
+
+{% set card = craft.partsKit.assets.make({ width: 800, height: 600, label: 'Card' }).one %}
+
+<style>
+  .mock-demo { font-family: system-ui, sans-serif; max-width: 880px; margin: 0 auto; padding: 24px; color: #1d2530; }
+  .mock-demo h2 { margin: 32px 0 4px; font-size: 18px; }
+  .mock-demo p.note { color: #5b6675; margin: 0 0 16px; font-size: 14px; }
+  .mock-demo img { display: block; border-radius: 8px; background: #eee; }
+  .mock-demo .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .mock-demo figure { margin: 0; }
+  .mock-demo figcaption { font: 12px/1.5 ui-monospace, monospace; color: #5b6675; margin-top: 6px; }
+</style>
+
+<div class="mock-demo">
+  <h2>Hero — <code>getImg()</code></h2>
+  <p class="note">1600×900, rendered straight from the mock element.</p>
+  {{ hero.getImg() }}
+
+  <h2>Fit transform — <code>getImg({ width: 640, mode: 'fit' })</code></h2>
+  <p class="note">Native Craft transform math: 1600×900 fit to 640 wide → 640×360.</p>
+  {{ hero.getImg({ width: 640, mode: 'fit' }) }}
+
+  <h2>Responsive — <code>getImg(null, ['1x', '2x'])</code></h2>
+  <p class="note">Each srcset size is a separate signed URL, generated on demand.</p>
+  {{ card.getImg(null, ['1x', '2x']) }}
+
+  <h2>Sizes &amp; labels</h2>
+  <p class="note">Two builder styles; the label is drawn on the placeholder.</p>
+  <div class="row">
+    <figure>
+      <img src="{{ hero.getUrl({ width: 320, height: 180, mode: 'crop' }) }}" alt="" width="320" height="180">
+      <figcaption>make({...}).one · crop 320×180</figcaption>
+    </figure>
+    <figure>
+      {{ thumb.getImg() }}
+      <figcaption>make.width(400).height(400).one</figcaption>
+    </figure>
+  </div>
+
+  <h2>Metadata</h2>
+  <p class="note">A mock answers the parts of the Asset surface templates use.</p>
+  <ul style="font: 13px/1.7 ui-monospace, monospace; color:#333;">
+    <li>hero.alt        → "{{ hero.alt }}"</li>
+    <li>hero.filename   → {{ hero.getFilename() }}</li>
+    <li>hero.extension  → {{ hero.getExtension() }}</li>
+    <li>hero.mimeType   → {{ hero.getMimeType() }}</li>
+    <li>hero.width × height → {{ hero.getWidth() }} × {{ hero.getHeight() }}</li>
+  </ul>
+</div>

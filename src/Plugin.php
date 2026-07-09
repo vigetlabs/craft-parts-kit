@@ -5,10 +5,12 @@ namespace viget\partskit;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
+use craft\events\RegisterCacheOptionsEvent;
 use craft\events\RegisterTemplateRootsEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\UserPermissions;
+use craft\utilities\ClearCaches;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use craft\web\View;
@@ -120,6 +122,20 @@ class Plugin extends BasePlugin
                 ];
             }
         );
+
+        // Let `clear-caches/all` (and the CP Clear Caches utility) empty the
+        // lazily-generated mock image cache.
+        Event::on(
+            ClearCaches::class,
+            ClearCaches::EVENT_REGISTER_CACHE_OPTIONS,
+            static function(RegisterCacheOptionsEvent $event) {
+                $event->options[] = [
+                    'key' => 'parts-kit-mocks',
+                    'label' => Craft::t('parts-kit', 'Parts Kit mock images'),
+                    'action' => Craft::getAlias(Assets::CACHE_DIRECTORY),
+                ];
+            }
+        );
     }
 
     /**
@@ -133,6 +149,11 @@ class Plugin extends BasePlugin
     {
         $partsKitDir = $this->getSettings()->directory;
         $event->rules[$partsKitDir] = 'parts-kit/view/root';
+        // Must precede the greedy `<template:.+>` catch-all below, which would
+        // otherwise swallow `/mock/<token>.png` and route it to view/template.
+        // Plain `.png` — Yii's UrlRule escapes literal dots itself, so a
+        // hand-escaped `\.png` would become `\\.png` and never match.
+        $event->rules[$partsKitDir . '/mock/<token:[A-Za-z0-9_-]+>.png'] = 'parts-kit/mock/view';
         $event->rules[$partsKitDir . '/<template:.+>'] = 'parts-kit/view/template';
     }
 }

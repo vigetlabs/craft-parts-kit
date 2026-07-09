@@ -3,7 +3,7 @@ title: Mock Asset Service for Parts Kit
 type: feat
 status: active
 date: 2026-05-25
-revised: 2026-06-08
+revised: 2026-07-09
 brainstorm: docs/brainstorms/2026-05-25-mock-asset-brainstorm.md
 ---
 
@@ -28,6 +28,27 @@ brainstorm: docs/brainstorms/2026-05-25-mock-asset-brainstorm.md
 > authoritative. What changed is *how the work is sequenced and verified*: every
 > feature-bearing unit now leads with a failing test, and the acceptance criteria
 > are mapped to concrete Codeception test files instead of manual verification.
+
+> **2026-07-09 revisions** (from the mid-implementation assessment,
+> `docs/plans/2026-07-09-mock-asset-implementation-assessment.md`):
+>
+> 1. **`ext-imagick` demoted from `require` to `suggest`** (supersedes point 2
+>    above and the original U2 wording). A hard platform requirement would break
+>    `composer update` for every existing 1.x install on an Imagick-less host —
+>    including sites that never use mock assets — and would make the plugin
+>    stricter than Craft core, which accepts GD or Imagick. The runtime guard in
+>    `Assets::make()` is the enforcement point: it throws a clear
+>    `RuntimeException` at first use, and the mock route is only reachable via
+>    URLs minted by `make()`, so an Imagick-less site that never uses mocks never
+>    hits a failure path. CI still exercises real Imagick (`PHP_EXTENSIONS`).
+> 2. **Focal point defaults to Craft's center, not null** (supersedes the
+>    brainstorm decision). A real image Asset never returns null from
+>    `getFocalPoint()` — Craft defaults to `['x' => 0.5, 'y' => 0.5]`
+>    (`Asset.php:2690`) — so a null-returning mock silently breaks
+>    `object-position: {{ asset.getFocalPoint(true) }}` parity and crashes
+>    `asset.getFocalPoint().x`. `MockAsset::getFocalPoint()` now mirrors Craft
+>    exactly (null only for non-visual kinds; center default otherwise);
+>    `getHasFocalPoint()` still reports false when unset, matching Craft.
 
 ## Enhancement Summary
 
@@ -140,7 +161,7 @@ Every file below is **new** — confirmed by a 2026-06-08 audit. Each feature-be
 | `src/helpers/MockImageGenerator.php` | Imagick PNG generation invoked only by the controller; atomic write, scale-to-fit, file-count cap | `tests/unit/helpers/MockImageGeneratorTest.php` |
 | `src/controllers/MockController.php` | `actionView(string $token)` — Parts Kit gate, HMAC validation, lazy generation, `sendFile` | `tests/functional/MockControllerCest.php` |
 | `src/resources/fonts/DejaVuSans.ttf` | Bundled font (Bitstream Vera license, redistributable) | covered indirectly by `MockImageGeneratorTest` |
-| `composer.json` *(modify)* | Add `"ext-imagick": "*"` to `require` | `composer validate` |
+| `composer.json` *(modify)* | Declare `ext-imagick` in `suggest` (runtime guard in `Assets::make()` enforces it at first use — see 2026-07-09 revision) | `composer validate` |
 | `README.md` / `CHANGELOG.md` *(modify)* | Document Mock Asset API, Imager X behavior, supported surface | n/a (docs) |
 
 ### Output Structure
@@ -210,11 +231,32 @@ Every feature-bearing unit below carries `Execution note: test-first` — write 
 
 Units carry stable U-IDs and are grouped into the original four phases. Phases 1–4 map to PRs in order; within a phase, follow the dependency order.
 
+### Implementation Status
+
+> Authoritative progress lives in git/PRs; this table is a convenience snapshot, last updated **2026-06-11**.
+
+| Unit | Status | Branch / PR | Notes |
+|---|---|---|---|
+| U1 | ✅ Done | `jp/15-asset-mock-feature` → [#24](https://github.com/vigetlabs/craft-parts-kit/pull/24) (draft) | Commit `109fccc`. Tests + PHPStan + ECS green. |
+| U2 | ✅ Done | `jp/15-asset-mock-deps` → [#25](https://github.com/vigetlabs/craft-parts-kit/pull/25) (draft, stacked on #24) | Commit `3e3700b`. Font provenance/license logged in U2. |
+| U3 | ✅ Done | `jp/15-asset-mock-core` (Phase 2 PR pending) | Landed with U4 (commit `9d90e8d`); dimension bounds added in review. |
+| U4 | ✅ Done | `jp/15-asset-mock-core` | Commit `9d90e8d`. Surface + dimensions + `NotSupportedException` guards. |
+| U5 | ✅ Done | `jp/15-asset-mock-core` | Commit `a6a89b1`. `make()` + `signedUrlForImage()` + Imagick check. |
+| U6 | ✅ Done | `jp/15-asset-mock-core` | Commit `0acad7e`. Transform-emitting URL methods. |
+| U7 | ✅ Done | `jp/15-asset-mock-core` | Commit `61e1f56`. Generator + atomic write + 5,000-file cap. |
+| U8 | ✅ Done | `jp/15-asset-mock-core` | Commit `e4e64a6`. Controller + signed URL rule + gate-before-validation. |
+| U9 | ✅ Done | `jp/15-asset-mock-core` | Commit `f2cc3b8`. ClearCaches integration. |
+| U10 | ⬜ Not started | — | `MockTransformedImage` model. |
+| U11 | ⬜ Not started | — | `ImagerXIntegration` service + registration. |
+| U12 | ⬜ Not started | — | README, CHANGELOG, consumer audit, final checks. |
+
 ### Phase 1 — Foundation scaffolding (separate PR)
 
 A small, mergeable-on-its-own PR establishing the `Assets` service seam and the component-getter convention. Reframed from the original "cleanup" framing because **no WIP code exists to fix** — this is greenfield scaffolding that lets Phase 2 build on a registered service.
 
 #### U1. `Assets` service skeleton + Plugin wiring
+
+**✅ Status: Done** (commit `109fccc`, PR [#24](https://github.com/vigetlabs/craft-parts-kit/pull/24)) — all test scenarios implemented and green; PHPStan + ECS clean. `MockAssetBuilder` landed here as a minimal stub (anticipated below) so `make()` has a real return type; U3 fleshes it out.
 
 **Goal:** A registered `assets` component reachable as `Plugin::getInstance()->getAssets()` and as the `partsKit.assets` Twig accessor, plus the typed-getter/`@property-read` convention applied to every component.
 
@@ -246,15 +288,17 @@ The meat. Feature dependencies (U2) land first, then the builder/element/service
 
 #### U2. Feature dependencies — `ext-imagick`, bundled font
 
-**Goal:** Declare the Imagick requirement and ship the fallback font so generation works on slim images.
+**✅ Status: Done** (commit `3e3700b`, PR [#25](https://github.com/vigetlabs/craft-parts-kit/pull/25), stacked on #24) — `ext-imagick` declared, DejaVu Sans 2.37 + `LICENSE` bundled, `*.ttf binary` added to `.gitattributes`. Full font provenance, checksums, and license-compliance analysis recorded below. **Revised 2026-07-09:** `ext-imagick` moved from `require` to `suggest` — the hard requirement would have broken `composer update` for existing installs that never use mocks; the `Assets::make()` runtime guard (U5) is the enforcement point instead. See the revision note at the top of this plan.
+
+**Goal:** Declare the Imagick dependency (as a `suggest` + runtime guard) and ship the fallback font so generation works on slim images.
 
 **Requirements:** Prerequisite for U7 (generation) and AC2.
 
 **Dependencies:** none (can land alongside U1).
 
-**Files:** `composer.json` (add `"ext-imagick": "*"` to `require`), `src/resources/fonts/DejaVuSans.ttf` (new binary), `src/resources/fonts/LICENSE` (new — the font's license text, required for redistribution), `.gitattributes` (add `*.ttf binary`).
+**Files:** `composer.json` (add `ext-imagick` to `suggest`), `src/resources/fonts/DejaVuSans.ttf` (new binary), `src/resources/fonts/LICENSE` (new — the font's license text, required for redistribution), `.gitattributes` (add `*.ttf binary`).
 
-**Approach:** Add the extension constraint to `require`. Add the TTF under `src/resources/fonts/` — covered by the existing PSR-4-adjacent package contents (verify it is **not** matched by any `export-ignore` rule in `.gitattributes`, since `docs/`, `craft-install/`, `.ddev/` are stripped from the dist package). The repo's `.gitattributes` has a `* text=auto` rule that would LF-normalize (corrupt) a binary font on checkout, so add an explicit `*.ttf binary` rule. **No CI workflow change is needed** — `imagick` is already in `PHP_EXTENSIONS` in both `.github/workflows/ci.yml` and `codecept.yml`.
+**Approach:** Declare the extension in `suggest` so Composer surfaces it without imposing a platform requirement on consumers who never use mock assets; `Assets::make()` (U5) throws a clear `RuntimeException` when it's actually needed and missing. Add the TTF under `src/resources/fonts/` — covered by the existing PSR-4-adjacent package contents (verify it is **not** matched by any `export-ignore` rule in `.gitattributes`, since `docs/`, `craft-install/`, `.ddev/` are stripped from the dist package). The repo's `.gitattributes` has a `* text=auto` rule that would LF-normalize (corrupt) a binary font on checkout, so add an explicit `*.ttf binary` rule. **No CI workflow change is needed** — `imagick` is already in `PHP_EXTENSIONS` in both `.github/workflows/ci.yml` and `codecept.yml`.
 
 **Font provenance & license (logged for audit — resolved during U2 execution on 2026-06-08):**
 
@@ -290,7 +334,7 @@ The meat. Feature dependencies (U2) land first, then the builder/element/service
 
 **Files:** `src/models/MockAssetBuilder.php` (new), `tests/unit/models/MockAssetBuilderTest.php` (new).
 
-**Approach:** `private array $_config = []`. `configure(array): self` merges and throws `InvalidArgumentException` on unknown keys. Fluent setters `width/height/label/alt/title/filename/focalPoint` each write to `_config` and return `$this`. `label()` trims and rejects > 200 chars. `one(): MockAsset` applies defaults (width 800, height 600 if unset; focalPoint null) and returns `new MockAsset($this->_config)`. The builder does **not** touch a `MockAsset` until `one()`.
+**Approach:** `private array $_config = []`. `configure(array): self` merges and throws `InvalidArgumentException` on unknown keys. Fluent setters `width/height/label/alt/title/filename/focalPoint` each write to `_config` and return `$this`. `label()` trims and rejects > 200 chars. `one(): MockAsset` applies defaults (width 800, height 600 if unset; focalPoint left unset — `MockAsset::getFocalPoint()` supplies Craft's center default) and returns `new MockAsset($this->_config)`. The builder does **not** touch a `MockAsset` until `one()`.
 
 **Patterns to follow:** Yii `new X($config)` idiom; existing model conventions in `src/models/`.
 
@@ -333,7 +377,7 @@ The meat. Feature dependencies (U2) land first, then the builder/element/service
 - `testGetWidthStretchVsFitDiffer` — same inputs, `stretch` vs `fit` produce the documented different dimensions (mode-awareness).
 - `testDefaultFilenameDerivedFromDimensions` — default filename is `mock-800x600.png`; extension `png`, mimeType `image/png`.
 - `testSetFilenameDerivesExtensionAndMime` — `setFilename('hero.jpg')` → extension `jpg`, mimeType `image/jpeg`.
-- `testFocalPointDefaultsToNullAndHasFocalPointFalse` — `getHasFocalPoint()` false, `getFocalPoint()` null by default.
+- `testFocalPointDefaultsToCenterAndHasFocalPointFalse` — `getHasFocalPoint()` false, `getFocalPoint()` returns Craft's center default `{x: 0.5, y: 0.5}` (never null for an image kind). *(Revised 2026-07-09 — was null.)*
 - `testUnsupportedMethodThrowsWithMethodNameAndReadme` — Covers AC10. `getVolume()`/`getFieldValue('caption')` throw `NotSupportedException`; message contains the method name AND `README`.
 
 **Verification:** `composer test-unit` green; static analysis clean (PHPStan must accept the typed-union override).
@@ -540,7 +584,7 @@ Soft dependency. Pro enables transparent integration; Lite gets a documented man
 
 **Files:** `README.md` (modify), `CHANGELOG.md` (modify).
 
-**Approach:** New "Mock Assets" README section with the Twig examples, the supported-`Asset`-surface table (and what throws), the Imager X Pro/Lite matrix incl. the manual `{ noop: true }` workaround, the visibility note (mirrors Parts Kit; HMAC-signed; tampered → 404; dev-only intent), the `clear-caches/all` note, and the file-proliferation/5,000-cap note. CHANGELOG entry announcing mock assets + the `ext-imagick` requirement. Verify every `NotSupportedException` message names the method and points to README. Audit one or two Viget consumer projects for `Asset $param` type-hints and record findings in the PR. Manually verify CP entry-preview context renders mock URLs.
+**Approach:** New "Mock Assets" README section with the Twig examples, the supported-`Asset`-surface table (and what throws), the Imager X Pro/Lite matrix incl. the manual `{ noop: true }` workaround, the visibility note (mirrors Parts Kit; HMAC-signed; tampered → 404; dev-only intent), the `clear-caches/all` note, and the file-proliferation/5,000-cap note. CHANGELOG entry announcing mock assets + the `ext-imagick` runtime dependency for mocks (suggested in Composer, enforced by the `make()` guard). Verify every `NotSupportedException` message names the method and points to README. Audit one or two Viget consumer projects for `Asset $param` type-hints and record findings in the PR. Manually verify CP entry-preview context renders mock URLs.
 
 **Patterns to follow:** existing `README.md` structure; `craft-viget-base-testing-reference` for doc conventions.
 
@@ -662,7 +706,7 @@ Out of scope for v1 (deferred until a real need surfaces):
 ## Dependencies & Prerequisites
 
 - PHP 8.2+ and Craft CMS 5.0+ (already required).
-- PHP `ext-imagick` (newly required — added to `composer.json`; already present in CI `PHP_EXTENSIONS`).
+- PHP `ext-imagick` (suggested in `composer.json`, not required — the `Assets::make()` runtime guard enforces it at first use; already present in CI `PHP_EXTENSIONS`). *(Revised 2026-07-09 — was a hard `require`.)*
 - Bundled DejaVu Sans TTF + its `LICENSE` (`src/resources/fonts/`). DejaVu **2.37**, sourced byte-for-byte from the official `dejavu-fonts` GitHub release, Bitstream Vera + Arev license (redistributable inside a larger package). Full provenance, checksums, and license-compliance analysis recorded in **U2** above.
 - Codeception suite (unit + functional through `\craft\test\Craft`), PHPStan level 4, ECS — all already wired and CI-enforced.
 - **Optional:** Imager X Pro for transparent integration (soft dependency via `class_exists`; not in dev deps).
@@ -716,7 +760,7 @@ Out of scope for v1 (deferred until a real need surfaces):
 
 - Default dimensions: **800×600**
 - Filename default: **auto `mock-{w}x{h}.png`; setting filename derives ext/mimeType**
-- Focal point default: **null; `hasFocalPoint()` false**
+- Focal point default: ~~null; `hasFocalPoint()` false~~ **revised 2026-07-09: Craft's center default `{x: 0.5, y: 0.5}`, mirroring `Asset::getFocalPoint()`; `hasFocalPoint()` still false when unset** (a real image Asset never returns null, so neither can the mock)
 - Asset kinds in v1: **image-only**
 - Hash inputs: **width, height, label** (keyed, HMAC-signed; no version prefix; rely on clear-caches)
 - Imager X Lite UX: **documented manual workaround only**
