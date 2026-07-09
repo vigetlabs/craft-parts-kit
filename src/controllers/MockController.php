@@ -42,7 +42,7 @@ class MockController extends Controller
         $payload = Craft::$app->getSecurity()->validateData(StringHelper::base64UrlDecode($token));
 
         if ($payload === false) {
-            throw new NotFoundHttpException('Mock image not found.');
+            throw $this->_notFound();
         }
 
         $config = Json::decode($payload);
@@ -58,7 +58,7 @@ class MockController extends Controller
             || $width > MockImageGenerator::MAX_DIMENSION
             || $height > MockImageGenerator::MAX_DIMENSION
         ) {
-            throw new NotFoundHttpException('Mock image not found.');
+            throw $this->_notFound();
         }
 
         $path = Plugin::getInstance()->getAssets()->cachePathForPayload($payload);
@@ -70,7 +70,7 @@ class MockController extends Controller
         // Generation may no-op at the file-count cap; treat a still-missing file
         // as a normal miss rather than failing the response.
         if (!file_exists($path)) {
-            throw new NotFoundHttpException('Mock image not found.');
+            throw $this->_notFound();
         }
 
         // A plain raw-content response (not sendFile/sendContentAsFile): the
@@ -84,7 +84,7 @@ class MockController extends Controller
         // concurrent clear-caches). Treat it as a miss rather than serving an
         // empty-body 200.
         if ($bytes === false) {
-            throw new NotFoundHttpException('Mock image not found.');
+            throw $this->_notFound();
         }
 
         $response = $this->response;
@@ -96,5 +96,15 @@ class MockController extends Controller
         $response->content = $bytes;
 
         return $response;
+    }
+
+    /**
+     * Every failure mode — invalid signature, out-of-range dimensions, cap-
+     * aborted generation, vanished file — answers with this same uniform 404 so
+     * the response never leaks which check failed.
+     */
+    private function _notFound(): NotFoundHttpException
+    {
+        return new NotFoundHttpException('Mock image not found.');
     }
 }

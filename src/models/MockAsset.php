@@ -142,11 +142,13 @@ class MockAsset extends Asset
         return Template::raw($img);
     }
 
-    // getSrcset() is inherited from Asset: its body is just
-    // `array_filter($this->getUrlsBySize(...))` formatted into a srcset string,
-    // and getUrlsBySize() is overridden below to emit signed mock URLs.
-
     /**
+     * Ported from {@see Asset::getUrlsBySize()} — same descriptor parsing,
+     * `ceil()` rounding, and only-carry-height-if-the-base-transform-set-one
+     * rule — but emitting signed mock URLs instead of transform URLs.
+     * `getSrcset()` needs no override: Craft's inherited implementation just
+     * formats whatever this method returns into a srcset string.
+     *
      * @param string[] $sizes
      * @return array<string, string|null>
      */
@@ -230,7 +232,10 @@ class MockAsset extends Asset
 
     public function getMimeType(mixed $transform = null): ?string
     {
-        return FileHelper::getMimeTypeByExtension($this->getFilename()) ?? 'image/png';
+        // No fallback: an unrecognized extension honestly reports null rather
+        // than claiming image/png. (The default mock-{w}x{h}.png filename
+        // always resolves.)
+        return FileHelper::getMimeTypeByExtension($this->getFilename());
     }
 
     public function getHasFocalPoint(): bool

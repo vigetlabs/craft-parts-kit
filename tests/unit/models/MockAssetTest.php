@@ -91,6 +91,16 @@ class MockAssetTest extends Unit
         $this->assertSame('image/jpeg', $asset->getMimeType());
     }
 
+    public function testUnknownExtensionMimeTypeIsNull(): void
+    {
+        // An unrecognized extension reports null rather than a misleading
+        // image/png fallback.
+        $asset = new MockAsset(['width' => 800, 'height' => 600]);
+        $asset->setFilename('data.zzzz');
+
+        $this->assertNull($asset->getMimeType());
+    }
+
     public function testFilenameConfigKeyIsHonored(): void
     {
         $asset = new MockAsset(['width' => 800, 'height' => 600, 'filename' => 'banner.webp']);
