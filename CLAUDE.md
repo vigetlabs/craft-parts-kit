@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## This is a public repository
+
+This plugin is open source and public on GitHub. Everything written here is public: code, comments, tests and fixtures, docs, commit messages, branch names, PR descriptions, and issue comments.
+
+**NEVER mention client or internal details.** No client or client-project names, no internal URLs, hostnames, or Slack channels, no links to private repositories or tickets, and no credentials. Use generic placeholders (`Acme`, `example.com`), and describe a real-world need in general terms ("a multi-site project with an RTL site") rather than naming who has it.
+
 ## What this is
 
 A Craft CMS 5 plugin (`viget/craft-parts-kit`, handle `parts-kit`) that turns a `templates/parts-kit` directory into a Storybook-style component library. It renders your real Twig templates—no build step, no npm. The browsing UI is a third-party web component (`@viget/parts-kit`) loaded from unpkg in `src/templates/root.twig`; the plugin's job is to scan templates, serve a JSON nav config, and route clean URLs to rendered parts.
